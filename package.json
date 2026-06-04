@@ -7,7 +7,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "demo": "tsx examples/demo.ts",
-    "mcp": "tsx src/mcp/stdio.ts"
+    "mcp": "tsx src/mcp/stdio.ts",
+    "seed": "tsx examples/seed.ts"
   },
   "keywords": [],
   "author": "",

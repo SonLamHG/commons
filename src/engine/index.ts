@@ -161,7 +161,14 @@ export function createEngine(rootDir: string): Engine {
       updateProposal(workspaceId, proposalId, { status: 'merged' });
       return { merged: true };
     },
-    async discardProposal() { throw new Error('not implemented'); },
+    async discardProposal(workspaceId, proposalId) {
+      const git = simpleGit(repoPath(workspaceId));
+      const branch = `proposal/${proposalId}`;
+      const wt = worktreePath(workspaceId, proposalId);
+      await git.raw(['worktree', 'remove', wt, '--force']);
+      await git.raw(['branch', '-D', branch]);
+      updateProposal(workspaceId, proposalId, { status: 'discarded' });
+    },
     async listProposals(workspaceId) {
       return readMeta(workspaceId);
     },

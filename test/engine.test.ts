@@ -150,3 +150,22 @@ describe('merge', () => {
     await expect(engine.mergeProposal('ws1', 'ghost')).rejects.toThrow();
   });
 });
+
+describe('discard', () => {
+  it('discards a proposal: removes worktree, deletes branch, marks discarded', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'junk' });
+    await engine.writeProposalFile('ws1', 'p1', 'junk.md', 'nope');
+    await engine.submitProposal('ws1', 'p1', 'junk');
+
+    await engine.discardProposal('ws1', 'p1');
+
+    expect((await engine.listProposals('ws1'))[0].status).toBe('discarded');
+    const state = await engine.readState('ws1');
+    expect(state.find((n) => n.path === 'junk.md')).toBeUndefined();
+    // worktree dir removed
+    expect(existsSync(join(root, 'worktrees', 'ws1', 'p1'))).toBe(false);
+    // merging after discard must reject (mergeProposal guard: status !== 'submitted')
+    await expect(engine.mergeProposal('ws1', 'p1')).rejects.toThrow();
+  });
+});

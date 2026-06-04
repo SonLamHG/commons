@@ -89,3 +89,19 @@ describe('proposal writes', () => {
     ).rejects.toThrow(/unsafe path/);
   });
 });
+
+describe('diff', () => {
+  it('returns per-file diffs of a proposal against main', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'Edit + add' });
+    await engine.writeProposalFile('ws1', 'p1', 'a.md', 'hello world');     // modified
+    await engine.writeProposalFile('ws1', 'p1', 'b.md', 'new file');        // added
+    await engine.submitProposal('ws1', 'p1', 'edit a, add b');
+
+    const diffs = await engine.diffProposal('ws1', 'p1');
+    const byPath = Object.fromEntries(diffs.map((d) => [d.path, d.status]));
+    expect(byPath['a.md']).toBe('modified');
+    expect(byPath['b.md']).toBe('added');
+    expect(diffs.find((d) => d.path === 'b.md')!.diff).toContain('new file');
+  });
+});

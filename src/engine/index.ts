@@ -1,7 +1,7 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep, isAbsolute } from 'node:path';
-import type { Engine, Proposal } from './types.js';
+import type { Engine, Proposal, FileDiff } from './types.js';
 
 export function createEngine(rootDir: string): Engine {
   const repoPath = (ws: string) => join(rootDir, 'repos', ws);
@@ -111,7 +111,19 @@ export function createEngine(rootDir: string): Engine {
       await git.commit(message);
       updateProposal(workspaceId, proposalId, { status: 'submitted' });
     },
-    async diffProposal() { throw new Error('not implemented'); },
+    async diffProposal(workspaceId, proposalId) {
+      const git = simpleGit(repoPath(workspaceId));
+      const branch = `proposal/${proposalId}`;
+      const nameStatus = await git.raw(['diff', '--name-status', 'main', branch]);
+      const result: FileDiff[] = [];
+      for (const line of nameStatus.split('\n').filter(Boolean)) {
+        const [code, path] = line.split('\t');
+        const status = code.startsWith('A') ? 'added' : code.startsWith('D') ? 'deleted' : 'modified';
+        const patch = await git.raw(['diff', 'main', branch, '--', path]);
+        result.push({ path, status, diff: patch });
+      }
+      return result;
+    },
     async mergeProposal() { throw new Error('not implemented'); },
     async discardProposal() { throw new Error('not implemented'); },
     async listProposals(workspaceId) {

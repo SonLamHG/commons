@@ -10,7 +10,10 @@
     "mcp": "tsx src/mcp/stdio.ts",
     "seed": "tsx examples/seed.ts",
     "agent-sim": "tsx examples/agent-sim.ts",
-    "api": "tsx src/api/main.ts"
+    "api": "tsx src/api/main.ts",
+    "web": "vite",
+    "build:web": "vite build",
+    "dev": "concurrently -n api,web -c blue,green \"npm:api\" \"npm:web\""
   },
   "keywords": [],
   "author": "",
@@ -19,13 +22,20 @@
     "@fastify/static": "^9.1.3",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "fastify": "^5.8.5",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
     "simple-git": "^3.36.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.2",
+    "concurrently": "^10.0.3",
     "tsx": "^4.22.4",
     "typescript": "^6.0.3",
+    "vite": "^8.0.16",
     "vitest": "^4.1.8"
   }
 }

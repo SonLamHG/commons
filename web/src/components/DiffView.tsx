@@ -1,0 +1,61 @@
+import React, { useEffect, useState } from 'react';
+import { api, type Proposal, type FileDiff, type MergeResult } from '../api';
+
+function DiffBody({ diff }: { diff: string }) {
+  return (
+    <pre className="diff-body">
+      {diff.split('\n').map((line, i) => {
+        const cls = line.startsWith('+') && !line.startsWith('+++') ? 'add'
+          : line.startsWith('-') && !line.startsWith('---') ? 'del'
+          : (line.startsWith('diff ') || line.startsWith('@@') || line.startsWith('index ') || line.startsWith('+++') || line.startsWith('---')) ? 'meta'
+          : '';
+        return <div key={i} className={`diff-line ${cls}`}>{line || ' '}</div>;
+      })}
+    </pre>
+  );
+}
+
+export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Proposal; onChanged: () => void; }) {
+  const [diffs, setDiffs] = useState<FileDiff[] | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState<string[] | null>(null);
+
+  useEffect(() => { setConflict(null); setDiffs(null); api.diff(ws, proposal.id).then(setDiffs); }, [ws, proposal.id]);
+
+  const approve = async () => {
+    setBusy(true);
+    try {
+      const res: MergeResult = await api.approve(ws, proposal.id);
+      if (res.merged) onChanged();
+      else setConflict(res.conflicts);
+    } finally { setBusy(false); }
+  };
+  const reject = async () => { setBusy(true); try { await api.reject(ws, proposal.id); onChanged(); } finally { setBusy(false); } };
+
+  const reviewable = proposal.status === 'submitted' || proposal.status === 'open';
+
+  return (
+    <div>
+      <h3>{proposal.title} <span className={`badge ${proposal.status}`}>{proposal.status}</span></h3>
+      {conflict && (
+        <div className="conflict">
+          Merge conflict on: {conflict.join(', ')}. Main was left untouched. Resolve and resubmit.
+        </div>
+      )}
+      {reviewable && (
+        <div className="actions">
+          <button className="btn approve" disabled={busy} onClick={approve}>Approve &amp; merge</button>
+          <button className="btn reject" disabled={busy} onClick={reject}>Reject</button>
+        </div>
+      )}
+      {diffs === null && <p className="empty">Loading diff…</p>}
+      {diffs?.length === 0 && <p className="empty">No changes.</p>}
+      {diffs?.map((d) => (
+        <div key={d.path} className="diff-file">
+          <h4>[{d.status}] {d.path}</h4>
+          <DiffBody diff={d.diff} />
+        </div>
+      ))}
+    </div>
+  );
+}

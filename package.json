@@ -8,7 +8,8 @@
     "test:watch": "vitest",
     "demo": "tsx examples/demo.ts",
     "mcp": "tsx src/mcp/stdio.ts",
-    "seed": "tsx examples/seed.ts"
+    "seed": "tsx examples/seed.ts",
+    "agent-sim": "tsx examples/agent-sim.ts"
   },
   "keywords": [],
   "author": "",

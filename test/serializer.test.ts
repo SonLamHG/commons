@@ -26,4 +26,14 @@ describe('WorkspaceSerializer', () => {
     expect(order[0]).toBe('a-start');
     expect(order.indexOf('b-end')).toBeLessThan(order.indexOf('a-end'));
   });
+
+  it('keeps the chain alive after a rejected op', async () => {
+    const s = new WorkspaceSerializer();
+    const order: string[] = [];
+    await expect(
+      s.run('ws', async () => { order.push('a'); throw new Error('boom'); }),
+    ).rejects.toThrow('boom');
+    await s.run('ws', async () => { order.push('b'); });
+    expect(order).toEqual(['a', 'b']);
+  });
 });

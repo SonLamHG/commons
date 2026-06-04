@@ -25,6 +25,12 @@ export function createEngine(rootDir: string): Engine {
     writeMeta(ws, list);
   }
 
+  function assertSafeId(kind: string, id: string): void {
+    if (!/^[A-Za-z0-9_-]+$/.test(id)) {
+      throw new Error(`invalid ${kind} id: ${id}`);
+    }
+  }
+
   function safeJoin(base: string, rel: string): string {
     const abs = join(base, rel);
     const r = relative(base, abs);
@@ -50,6 +56,7 @@ export function createEngine(rootDir: string): Engine {
 
   return {
     async createWorkspace({ id, seed }) {
+      assertSafeId('workspace', id);
       const path = repoPath(id);
       if (existsSync(join(path, '.git'))) {
         throw new Error(`workspace already exists: ${id}`);
@@ -77,10 +84,11 @@ export function createEngine(rootDir: string): Engine {
     },
 
     async readFile(workspaceId, path) {
-      return readFileSync(join(repoPath(workspaceId), path), 'utf8');
+      return readFileSync(safeJoin(repoPath(workspaceId), path), 'utf8');
     },
 
     async createProposal(workspaceId, { id, title }) {
+      assertSafeId('proposal', id);
       const git = simpleGit(repoPath(workspaceId));
       const existing = readMeta(workspaceId);
       if (existing.find((p) => p.id === id)) {
@@ -88,7 +96,7 @@ export function createEngine(rootDir: string): Engine {
       }
       const wt = worktreePath(workspaceId, id);
       mkdirSync(dirname(wt), { recursive: true });
-      await git.raw(['worktree', 'add', wt, '-b', `proposal/${id}`]);
+      await git.raw(['worktree', 'add', wt, '-b', `proposal/${id}`, 'main']);
       existing.push({
         id,
         branch: `proposal/${id}`,
@@ -99,6 +107,11 @@ export function createEngine(rootDir: string): Engine {
       writeMeta(workspaceId, existing);
     },
     async writeProposalFile(workspaceId, proposalId, path, content) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      if (proposal.status === 'merged' || proposal.status === 'discarded') {
+        throw new Error(`proposal ${proposalId} is ${proposal.status} (no worktree)`);
+      }
       const wt = worktreePath(workspaceId, proposalId);
       const abs = safeJoin(wt, path);
       mkdirSync(dirname(abs), { recursive: true });

@@ -149,6 +149,47 @@ describe('merge', () => {
     await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
     await expect(engine.mergeProposal('ws1', 'ghost')).rejects.toThrow();
   });
+
+  it('composes two clean non-conflicting merges into main', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'base' } });
+
+    await engine.createProposal('ws1', { id: 'p1', title: 'add b' });
+    await engine.writeProposalFile('ws1', 'p1', 'b.md', 'bee');
+    await engine.submitProposal('ws1', 'p1', 'add b');
+
+    await engine.createProposal('ws1', { id: 'p2', title: 'add c' });
+    await engine.writeProposalFile('ws1', 'p2', 'c.md', 'see');
+    await engine.submitProposal('ws1', 'p2', 'add c');
+
+    expect(await engine.mergeProposal('ws1', 'p1')).toEqual({ merged: true });
+    expect(await engine.mergeProposal('ws1', 'p2')).toEqual({ merged: true });
+
+    const state = await engine.readState('ws1');
+    expect(state.find((n) => n.path === 'b.md')).toBeDefined();
+    expect(state.find((n) => n.path === 'c.md')).toBeDefined();
+  });
+});
+
+describe('guards', () => {
+  it('rejects invalid workspace and proposal ids', async () => {
+    await expect(engine.createWorkspace({ id: '../evil', seed: {} })).rejects.toThrow(/invalid workspace id/);
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hi' } });
+    await expect(engine.createProposal('ws1', { id: 'bad/id', title: 'x' })).rejects.toThrow(/invalid proposal id/);
+  });
+
+  it('rejects readFile paths that escape the workspace', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hi' } });
+    await expect(engine.readFile('ws1', '../../escape.md')).rejects.toThrow(/unsafe path/);
+  });
+
+  it('rejects writing to a merged proposal', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hi' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'x' });
+    await engine.writeProposalFile('ws1', 'p1', 'b.md', 'bee');
+    await engine.submitProposal('ws1', 'p1', 'add b');
+    await engine.mergeProposal('ws1', 'p1');
+    await expect(engine.writeProposalFile('ws1', 'p1', 'c.md', 'no')).rejects.toThrow(/merged/);
+  });
 });
 
 describe('discard', () => {

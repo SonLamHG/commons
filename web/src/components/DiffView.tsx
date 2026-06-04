@@ -19,18 +19,31 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
   const [diffs, setDiffs] = useState<FileDiff[] | null>(null);
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<string[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { setConflict(null); setDiffs(null); api.diff(ws, proposal.id).then(setDiffs); }, [ws, proposal.id]);
+  useEffect(() => {
+    let live = true;
+    setConflict(null); setError(null); setDiffs(null);
+    api.diff(ws, proposal.id).then((d) => { if (live) setDiffs(d); }).catch((e) => { if (live) setError(e instanceof Error ? e.message : String(e)); });
+    return () => { live = false; };
+  }, [ws, proposal.id]);
 
   const approve = async () => {
-    setBusy(true);
+    setBusy(true); setError(null);
     try {
       const res: MergeResult = await api.approve(ws, proposal.id);
       if (res.merged) onChanged();
       else setConflict(res.conflicts);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
     } finally { setBusy(false); }
   };
-  const reject = async () => { setBusy(true); try { await api.reject(ws, proposal.id); onChanged(); } finally { setBusy(false); } };
+  const reject = async () => {
+    setBusy(true); setError(null);
+    try { await api.reject(ws, proposal.id); onChanged(); }
+    catch (e) { setError(e instanceof Error ? e.message : String(e)); }
+    finally { setBusy(false); }
+  };
 
   const reviewable = proposal.status === 'submitted' || proposal.status === 'open';
 
@@ -42,6 +55,7 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
           Merge conflict on: {conflict.join(', ')}. Main was left untouched. Resolve and resubmit.
         </div>
       )}
+      {error && <div className="conflict">Action failed: {error}</div>}
       {reviewable && (
         <div className="actions">
           <button className="btn approve" disabled={busy} onClick={approve}>Approve &amp; merge</button>

@@ -6,6 +6,7 @@ export function ProposalList({ ws, proposals, onChanged }: {
   ws: string; proposals: Proposal[]; onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
+  const selectedProposal = proposals.find((p) => p.id === selected) ?? null;
   return (
     <div className="proposals">
       <div className="list">
@@ -19,8 +20,8 @@ export function ProposalList({ ws, proposals, onChanged }: {
         ))}
       </div>
       <div className="detail">
-        {selected
-          ? <DiffView ws={ws} proposal={proposals.find((p) => p.id === selected)!} onChanged={() => { setSelected(null); onChanged(); }} />
+        {selectedProposal
+          ? <DiffView ws={ws} proposal={selectedProposal} onChanged={() => { setSelected(null); onChanged(); }} />
           : <p className="empty">Select a proposal to review.</p>}
       </div>
     </div>

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createEngine } from '../src/engine/index.js';
@@ -54,5 +54,14 @@ describe('proposal lifecycle', () => {
       title: 'Draft posts',
       status: 'open',
     });
+    expect(existsSync(join(root, 'worktrees', 'ws1', 'p1'))).toBe(true);
+  });
+
+  it('rejects duplicate proposal ids', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'first' });
+    await expect(
+      engine.createProposal('ws1', { id: 'p1', title: 'dup' }),
+    ).rejects.toThrow(/already exists/);
   });
 });

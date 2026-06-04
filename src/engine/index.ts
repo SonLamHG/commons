@@ -82,18 +82,21 @@ export function createEngine(rootDir: string): Engine {
 
     async createProposal(workspaceId, { id, title }) {
       const git = simpleGit(repoPath(workspaceId));
+      const existing = readMeta(workspaceId);
+      if (existing.find((p) => p.id === id)) {
+        throw new Error(`proposal already exists: ${id}`);
+      }
       const wt = worktreePath(workspaceId, id);
       mkdirSync(dirname(wt), { recursive: true });
       await git.raw(['worktree', 'add', wt, '-b', `proposal/${id}`]);
-      const list = readMeta(workspaceId);
-      list.push({
+      existing.push({
         id,
         branch: `proposal/${id}`,
         title,
         status: 'open',
         createdAt: new Date().toISOString(),
       });
-      writeMeta(workspaceId, list);
+      writeMeta(workspaceId, existing);
     },
     async writeProposalFile() { throw new Error('not implemented'); },
     async submitProposal() { throw new Error('not implemented'); },

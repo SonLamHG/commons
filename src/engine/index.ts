@@ -1,9 +1,14 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
-import { join, dirname, relative, sep, isAbsolute } from 'node:path';
+import { join, dirname, relative, sep, isAbsolute, resolve } from 'node:path';
 import type { Engine, Proposal, FileDiff } from './types.js';
 
+/** Normalize to forward slashes so Git for Windows handles paths correctly. */
+const fwd = (p: string) => p.replace(/\\/g, '/');
+
 export function createEngine(rootDir: string): Engine {
+  // Resolve to absolute path so git.raw() paths are never relative to repo CWD
+  rootDir = resolve(rootDir);
   const repoPath = (ws: string) => join(rootDir, 'repos', ws);
   const worktreePath = (ws: string, p: string) => join(rootDir, 'worktrees', ws, p);
   const metaPath = (ws: string) => join(rootDir, 'meta', ws, 'proposals.json');
@@ -96,7 +101,7 @@ export function createEngine(rootDir: string): Engine {
       }
       const wt = worktreePath(workspaceId, id);
       mkdirSync(dirname(wt), { recursive: true });
-      await git.raw(['worktree', 'add', wt, '-b', `proposal/${id}`, 'main']);
+      await git.raw(['worktree', 'add', fwd(wt), '-b', `proposal/${id}`, 'main']);
       existing.push({
         id,
         branch: `proposal/${id}`,
@@ -169,7 +174,7 @@ export function createEngine(rootDir: string): Engine {
       if (mergeError) throw mergeError;
 
       const wt = worktreePath(workspaceId, proposalId);
-      await git.raw(['worktree', 'remove', wt, '--force']);
+      await git.raw(['worktree', 'remove', fwd(wt), '--force']);
       await git.raw(['branch', '-D', branch]);
       updateProposal(workspaceId, proposalId, { status: 'merged' });
       return { merged: true };
@@ -178,7 +183,7 @@ export function createEngine(rootDir: string): Engine {
       const git = simpleGit(repoPath(workspaceId));
       const branch = `proposal/${proposalId}`;
       const wt = worktreePath(workspaceId, proposalId);
-      await git.raw(['worktree', 'remove', wt, '--force']);
+      await git.raw(['worktree', 'remove', fwd(wt), '--force']);
       await git.raw(['branch', '-D', branch]);
       updateProposal(workspaceId, proposalId, { status: 'discarded' });
     },

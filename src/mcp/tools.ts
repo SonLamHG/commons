@@ -1,6 +1,6 @@
 import { z, type ZodRawShape } from 'zod';
 import type { Engine } from '../engine/types.js';
-import type { WorkspaceSerializer } from './serializer.js';
+import type { WorkspaceSerializer } from '../util/serializer.js';
 
 export interface ToolDef {
   name: string;

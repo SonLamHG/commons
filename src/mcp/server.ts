@@ -1,6 +1,6 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { Engine } from '../engine/types.js';
-import { WorkspaceSerializer } from './serializer.js';
+import { WorkspaceSerializer } from '../util/serializer.js';
 import { generateId } from '../util/id.js';
 import { createTools } from './tools.js';
 

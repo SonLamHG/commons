@@ -36,4 +36,5 @@ export interface Engine {
   mergeProposal(workspaceId: string, proposalId: string): Promise<MergeResult>;
   discardProposal(workspaceId: string, proposalId: string): Promise<void>;
   listProposals(workspaceId: string): Promise<Proposal[]>;
+  listWorkspaces(): Promise<string[]>;
 }

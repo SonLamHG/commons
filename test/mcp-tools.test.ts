@@ -3,7 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createEngine } from '../src/engine/index.js';
-import { WorkspaceSerializer } from '../src/mcp/serializer.js';
+import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { generateId } from '../src/util/id.js';
 import { createTools } from '../src/mcp/tools.js';
 import type { ToolDef } from '../src/mcp/tools.js';

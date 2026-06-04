@@ -185,5 +185,10 @@ export function createEngine(rootDir: string): Engine {
     async listProposals(workspaceId) {
       return readMeta(workspaceId);
     },
+    async listWorkspaces() {
+      const reposDir = join(rootDir, 'repos');
+      if (!existsSync(reposDir)) return [];
+      return readdirSync(reposDir).filter((name) => existsSync(join(reposDir, name, '.git')));
+    },
   };
 }

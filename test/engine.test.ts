@@ -210,3 +210,12 @@ describe('discard', () => {
     await expect(engine.mergeProposal('ws1', 'p1')).rejects.toThrow();
   });
 });
+
+describe('listWorkspaces', () => {
+  it('lists created workspaces and ignores non-workspace dirs', async () => {
+    expect(await engine.listWorkspaces()).toEqual([]);
+    await engine.createWorkspace({ id: 'alpha', seed: { 'a.md': '1' } });
+    await engine.createWorkspace({ id: 'beta', seed: { 'b.md': '2' } });
+    expect((await engine.listWorkspaces()).sort()).toEqual(['alpha', 'beta']);
+  });
+});

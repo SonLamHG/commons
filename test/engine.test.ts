@@ -105,3 +105,39 @@ describe('diff', () => {
     expect(diffs.find((d) => d.path === 'b.md')!.diff).toContain('new file');
   });
 });
+
+describe('merge', () => {
+  it('merges a clean proposal into main and removes the worktree', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'Add b' });
+    await engine.writeProposalFile('ws1', 'p1', 'b.md', 'bee');
+    await engine.submitProposal('ws1', 'p1', 'add b');
+
+    const res = await engine.mergeProposal('ws1', 'p1');
+    expect(res).toEqual({ merged: true });
+
+    const state = await engine.readState('ws1');
+    expect(state.find((n) => n.path === 'b.md')).toBeDefined();
+    expect((await engine.listProposals('ws1'))[0].status).toBe('merged');
+  });
+
+  it('detects conflicts and does not corrupt main', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'base' } });
+
+    await engine.createProposal('ws1', { id: 'p1', title: 'p1' });
+    await engine.writeProposalFile('ws1', 'p1', 'a.md', 'from p1');
+    await engine.submitProposal('ws1', 'p1', 'p1 edits a');
+
+    await engine.createProposal('ws1', { id: 'p2', title: 'p2' });
+    await engine.writeProposalFile('ws1', 'p2', 'a.md', 'from p2');
+    await engine.submitProposal('ws1', 'p2', 'p2 edits a');
+
+    expect(await engine.mergeProposal('ws1', 'p1')).toEqual({ merged: true });
+
+    const res = await engine.mergeProposal('ws1', 'p2');
+    expect(res.merged).toBe(false);
+    if (!res.merged) expect(res.conflicts).toContain('a.md');
+
+    expect(await engine.readFile('ws1', 'a.md')).toBe('from p1');
+  });
+});

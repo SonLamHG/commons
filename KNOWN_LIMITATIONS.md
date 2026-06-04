@@ -11,6 +11,9 @@ The engine is **not** concurrency-safe. Two mutating operations racing on the sa
 
 **Requirement for the MCP server:** serialize all mutating operations per workspace (a per-workspace mutex/queue). Reads can be concurrent; writes/merges/discards must not overlap for the same workspace.
 
+### 1b. Serializer is per-instance — shared root needs a shared serializer (for Subsystem 3)
+`WorkspaceSerializer` is created once per `buildServer()` call. The expected deployment keeps the MCP server (stdio child process) and the future web review UI (separate HTTP process) as **separate OS processes** — git's own file locking covers cross-process safety there. BUT if anyone embeds both in the **same Node process** against the same `COMMONS_ROOT`, all mutating operations — including the web UI's `mergeProposal`/`discardProposal` — must route through a **single shared `WorkspaceSerializer`** instance, or they will race with MCP-layer mutations.
+
 ## Deferred (document, fix later)
 
 ### 2. Sidecar ↔ git state drift on crash

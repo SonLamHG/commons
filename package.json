@@ -6,7 +6,8 @@
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "demo": "tsx examples/demo.ts"
+    "demo": "tsx examples/demo.ts",
+    "mcp": "tsx src/mcp/stdio.ts"
   },
   "keywords": [],
   "author": "",

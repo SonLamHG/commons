@@ -140,4 +140,9 @@ describe('merge', () => {
 
     expect(await engine.readFile('ws1', 'a.md')).toBe('from p1');
   });
+
+  it('throws (not a false conflict) when merging a non-existent proposal', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await expect(engine.mergeProposal('ws1', 'ghost')).rejects.toThrow();
+  });
 });

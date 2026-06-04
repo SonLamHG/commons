@@ -129,15 +129,27 @@ export function createEngine(rootDir: string): Engine {
       const git = simpleGit(repo);
       const branch = `proposal/${proposalId}`;
       await git.raw(['checkout', 'main']);
-      const mergeOutput = await git.raw(['merge', '--no-ff', '-m', `merge ${branch}`, branch]);
-      const hasConflict = mergeOutput.includes('CONFLICT') || mergeOutput.includes('Automatic merge failed');
-      if (hasConflict) {
-        const conflicted = (await git.raw(['diff', '--name-only', '--diff-filter=U']))
-          .split('\n')
-          .filter(Boolean);
+
+      let mergeError: unknown;
+      try {
+        await git.raw(['merge', '--no-ff', '-m', `merge ${branch}`, branch]);
+      } catch (e) {
+        // Some git/simple-git versions reject on conflict; disambiguate via git state below.
+        mergeError = e;
+      }
+
+      // Locale-independent conflict detection: inspect unmerged entries, not stdout text.
+      const conflicted = (await git.raw(['diff', '--name-only', '--diff-filter=U']))
+        .split('\n')
+        .filter(Boolean);
+      if (conflicted.length > 0) {
         await git.raw(['merge', '--abort']);
         return { merged: false, conflicts: conflicted };
       }
+
+      // Merge threw but produced no conflicted files => a real error (e.g. unknown branch). Surface it.
+      if (mergeError) throw mergeError;
+
       const wt = worktreePath(workspaceId, proposalId);
       await git.raw(['worktree', 'remove', wt, '--force']);
       await git.raw(['branch', '-D', branch]);

@@ -98,8 +98,19 @@ export function createEngine(rootDir: string): Engine {
       });
       writeMeta(workspaceId, existing);
     },
-    async writeProposalFile() { throw new Error('not implemented'); },
-    async submitProposal() { throw new Error('not implemented'); },
+    async writeProposalFile(workspaceId, proposalId, path, content) {
+      const wt = worktreePath(workspaceId, proposalId);
+      const abs = safeJoin(wt, path);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, content);
+    },
+    async submitProposal(workspaceId, proposalId, message) {
+      const wt = worktreePath(workspaceId, proposalId);
+      const git = simpleGit(wt);
+      await git.add('.');
+      await git.commit(message);
+      updateProposal(workspaceId, proposalId, { status: 'submitted' });
+    },
     async diffProposal() { throw new Error('not implemented'); },
     async mergeProposal() { throw new Error('not implemented'); },
     async discardProposal() { throw new Error('not implemented'); },

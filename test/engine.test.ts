@@ -65,3 +65,27 @@ describe('proposal lifecycle', () => {
     ).rejects.toThrow(/already exists/);
   });
 });
+
+describe('proposal writes', () => {
+  it('writes files into the proposal worktree and commits on submit', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'Add post' });
+    await engine.writeProposalFile('ws1', 'p1', 'posts/post-1.md', '# Post 1');
+    await engine.submitProposal('ws1', 'p1', 'add post 1');
+
+    // main không bị ảnh hưởng (isolation)
+    const mainState = await engine.readState('ws1');
+    expect(mainState.find((n) => n.path === 'posts/post-1.md')).toBeUndefined();
+
+    const proposals = await engine.listProposals('ws1');
+    expect(proposals[0].status).toBe('submitted');
+  });
+
+  it('rejects proposal file paths that escape the worktree', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'x' });
+    await expect(
+      engine.writeProposalFile('ws1', 'p1', '../../escape.md', 'nope'),
+    ).rejects.toThrow(/unsafe path/);
+  });
+});

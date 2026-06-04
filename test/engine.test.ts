@@ -40,3 +40,19 @@ describe('workspace', () => {
     ).rejects.toThrow(/unsafe path/);
   });
 });
+
+describe('proposal lifecycle', () => {
+  it('creates a proposal as an isolated worktree and lists it', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'Draft posts' });
+
+    const proposals = await engine.listProposals('ws1');
+    expect(proposals).toHaveLength(1);
+    expect(proposals[0]).toMatchObject({
+      id: 'p1',
+      branch: 'proposal/p1',
+      title: 'Draft posts',
+      status: 'open',
+    });
+  });
+});

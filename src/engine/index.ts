@@ -1,10 +1,29 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
 import { join, dirname, relative, sep, isAbsolute } from 'node:path';
-import type { Engine } from './types.js';
+import type { Engine, Proposal } from './types.js';
 
 export function createEngine(rootDir: string): Engine {
   const repoPath = (ws: string) => join(rootDir, 'repos', ws);
+  const worktreePath = (ws: string, p: string) => join(rootDir, 'worktrees', ws, p);
+  const metaPath = (ws: string) => join(rootDir, 'meta', ws, 'proposals.json');
+
+  function readMeta(ws: string): Proposal[] {
+    const m = metaPath(ws);
+    return existsSync(m) ? JSON.parse(readFileSync(m, 'utf8')) : [];
+  }
+  function writeMeta(ws: string, list: Proposal[]) {
+    const m = metaPath(ws);
+    mkdirSync(dirname(m), { recursive: true });
+    writeFileSync(m, JSON.stringify(list, null, 2));
+  }
+  function updateProposal(ws: string, id: string, patch: Partial<Proposal>) {
+    const list = readMeta(ws);
+    const i = list.findIndex((p) => p.id === id);
+    if (i === -1) throw new Error(`proposal ${id} not found`);
+    list[i] = { ...list[i], ...patch };
+    writeMeta(ws, list);
+  }
 
   function safeJoin(base: string, rel: string): string {
     const abs = join(base, rel);
@@ -61,12 +80,28 @@ export function createEngine(rootDir: string): Engine {
       return readFileSync(join(repoPath(workspaceId), path), 'utf8');
     },
 
-    async createProposal() { throw new Error('not implemented'); },
+    async createProposal(workspaceId, { id, title }) {
+      const git = simpleGit(repoPath(workspaceId));
+      const wt = worktreePath(workspaceId, id);
+      mkdirSync(dirname(wt), { recursive: true });
+      await git.raw(['worktree', 'add', wt, '-b', `proposal/${id}`]);
+      const list = readMeta(workspaceId);
+      list.push({
+        id,
+        branch: `proposal/${id}`,
+        title,
+        status: 'open',
+        createdAt: new Date().toISOString(),
+      });
+      writeMeta(workspaceId, list);
+    },
     async writeProposalFile() { throw new Error('not implemented'); },
     async submitProposal() { throw new Error('not implemented'); },
     async diffProposal() { throw new Error('not implemented'); },
     async mergeProposal() { throw new Error('not implemented'); },
     async discardProposal() { throw new Error('not implemented'); },
-    async listProposals() { throw new Error('not implemented'); },
+    async listProposals(workspaceId) {
+      return readMeta(workspaceId);
+    },
   };
 }

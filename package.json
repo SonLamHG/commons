@@ -12,7 +12,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "simple-git": "^3.36.0"
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "simple-git": "^3.36.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",

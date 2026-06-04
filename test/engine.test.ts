@@ -119,6 +119,7 @@ describe('merge', () => {
     const state = await engine.readState('ws1');
     expect(state.find((n) => n.path === 'b.md')).toBeDefined();
     expect((await engine.listProposals('ws1'))[0].status).toBe('merged');
+    expect(existsSync(join(root, 'worktrees', 'ws1', 'p1'))).toBe(false);
   });
 
   it('detects conflicts and does not corrupt main', async () => {
@@ -139,6 +140,9 @@ describe('merge', () => {
     if (!res.merged) expect(res.conflicts).toContain('a.md');
 
     expect(await engine.readFile('ws1', 'a.md')).toBe('from p1');
+
+    const p2 = (await engine.listProposals('ws1')).find((p) => p.id === 'p2');
+    expect(p2!.status).toBe('submitted');
   });
 
   it('throws (not a false conflict) when merging a non-existent proposal', async () => {

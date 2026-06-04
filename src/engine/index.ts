@@ -125,6 +125,11 @@ export function createEngine(rootDir: string): Engine {
       return result;
     },
     async mergeProposal(workspaceId, proposalId) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      if (proposal.status !== 'submitted') {
+        throw new Error(`proposal ${proposalId} is not submitted (status: ${proposal.status})`);
+      }
       const repo = repoPath(workspaceId);
       const git = simpleGit(repo);
       const branch = `proposal/${proposalId}`;

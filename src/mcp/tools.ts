@@ -19,11 +19,13 @@ export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] 
   return [
     {
       name: 'read_state',
-      description: 'List the files in a workspace (durable main state).',
+      description:
+        'List the files approved into a workspace (durable main state). Proposals in progress are NOT reflected here — use diff_proposal to see a proposal’s pending changes.',
       inputSchema: { workspace: z.string() },
       run: async ({ workspace }) => {
         const nodes = await engine.readState(workspace);
-        return nodes.filter((n) => n.type === 'file').map((n) => n.path).join('\n');
+        const files = nodes.filter((n) => n.type === 'file').map((n) => n.path);
+        return files.length > 0 ? files.join('\n') : '(no files)';
       },
     },
     {
@@ -71,7 +73,8 @@ export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] 
     },
     {
       name: 'diff_proposal',
-      description: 'Show the per-file diff a proposal would apply to main.',
+      description:
+        'Show the per-file diff a proposal would apply to main. Call after writing files and before submitting, to review your own changes.',
       inputSchema: { workspace: z.string(), proposalId: z.string() },
       run: async ({ workspace, proposalId }) => {
         const diffs = await engine.diffProposal(workspace, proposalId);

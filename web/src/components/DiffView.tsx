@@ -21,12 +21,16 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
   const [conflict, setConflict] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const reviewable = proposal.status === 'submitted' || proposal.status === 'open';
+
   useEffect(() => {
     let live = true;
     setConflict(null); setError(null); setDiffs(null);
+    // Merged/discarded proposals have no branch anymore — don't diff (avoids "unknown revision").
+    if (!reviewable) { setDiffs([]); return; }
     api.diff(ws, proposal.id).then((d) => { if (live) setDiffs(d); }).catch((e) => { if (live) setError(e instanceof Error ? e.message : String(e)); });
     return () => { live = false; };
-  }, [ws, proposal.id]);
+  }, [ws, proposal.id, reviewable]);
 
   const approve = async () => {
     setBusy(true); setError(null);
@@ -45,11 +49,12 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
     finally { setBusy(false); }
   };
 
-  const reviewable = proposal.status === 'submitted' || proposal.status === 'open';
-
   return (
     <div>
       <h3>{proposal.title} <span className={`badge ${proposal.status}`}>{proposal.status}</span></h3>
+      {!reviewable && (
+        <p className="empty">This proposal is {proposal.status} — already resolved, nothing to review.</p>
+      )}
       {conflict && (
         <div className="conflict">
           Merge conflict on: {conflict.join(', ')}. Main was left untouched. Resolve and resubmit.
@@ -62,8 +67,8 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
           <button className="btn reject" disabled={busy} onClick={reject}>Reject</button>
         </div>
       )}
-      {diffs === null && <p className="empty">Loading diff…</p>}
-      {diffs?.length === 0 && <p className="empty">No changes.</p>}
+      {reviewable && diffs === null && <p className="empty">Loading diff…</p>}
+      {reviewable && diffs?.length === 0 && <p className="empty">No changes.</p>}
       {diffs?.map((d) => (
         <div key={d.path} className="diff-file">
           <h4>[{d.status}] {d.path}</h4>

@@ -7,13 +7,22 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [content, setContent] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const [webhook, setWebhook] = useState('');
+  const [savedWebhook, setSavedWebhook] = useState<string | undefined>(undefined);
+  const [published, setPublished] = useState<Record<string, { publishedAt: string }>>({});
+  const [publishing, setPublishing] = useState(false);
+  const [publishMsg, setPublishMsg] = useState<string | null>(null);
+
   useEffect(() => {
-    setSelected(null); setContent(null); setError(null); setFiles(null);
+    setSelected(null); setContent(null); setError(null); setFiles(null); setPublishMsg(null);
     api.state(ws).then((nodes) => setFiles(nodes.filter((n) => n.type === 'file')))
       .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    api.getConfig(ws).then((c) => { setSavedWebhook(c.webhookUrl); setWebhook(c.webhookUrl ?? ''); }).catch(() => {});
+    api.published(ws).then(setPublished).catch(() => {});
   }, [ws]);
 
   useEffect(() => {
+    setPublishMsg(null);
     if (!selected) { setContent(null); return; }
     let live = true;
     setContent(null);
@@ -22,28 +31,76 @@ export function FileBrowser({ ws }: { ws: string }) {
     return () => { live = false; };
   }, [ws, selected]);
 
+  const saveWebhook = async () => {
+    try {
+      await api.setConfig(ws, webhook.trim());
+      setSavedWebhook(webhook.trim() || undefined);
+      setPublishMsg('Webhook saved.');
+    } catch (e) { setPublishMsg(e instanceof Error ? e.message : String(e)); }
+  };
+
+  const doPublish = async () => {
+    if (!selected) return;
+    setPublishing(true); setPublishMsg(null);
+    try {
+      await api.publish(ws, selected);
+      api.published(ws).then(setPublished).catch(() => {});
+      setPublishMsg('Published ✓');
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
+      let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
+      setPublishMsg('Publish failed: ' + msg);
+    } finally { setPublishing(false); }
+  };
+
+  const isMd = !!selected && selected.endsWith('.md');
+  const pub = selected ? published[selected] : undefined;
+
   return (
-    <div className="proposals">
-      <div className="list">
-        <h2>Files</h2>
-        {error && <p className="empty" style={{ color: '#cb2431' }}>{error}</p>}
-        {files === null && <p className="empty">Loading…</p>}
-        {files?.length === 0 && <p className="empty">No files yet.</p>}
-        {files?.map((f) => (
-          <button key={f.path} className={f.path === selected ? 'prop active' : 'prop'} onClick={() => setSelected(f.path)}>
-            <span className="title" style={{ fontFamily: 'monospace', fontWeight: 400 }}>{f.path}</span>
-          </button>
-        ))}
+    <div>
+      <div className="webhookbar">
+        <label>Publish webhook</label>
+        <input className="newinput" placeholder="https://hook.make.com/... or a Discord webhook URL"
+          value={webhook} onChange={(e) => setWebhook(e.target.value)} />
+        <button className="btn save" onClick={saveWebhook}>Save</button>
       </div>
-      <div className="detail">
-        {!selected && <p className="empty">Select a file to view.</p>}
-        {selected && content === null && <p className="empty">Loading…</p>}
-        {selected && content !== null && (
-          <div className="diff-file">
-            <h4>{selected}</h4>
-            <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
-          </div>
-        )}
+      <div className="proposals">
+        <div className="list">
+          <h2>Files</h2>
+          {error && <p className="empty" style={{ color: '#cb2431' }}>{error}</p>}
+          {files === null && <p className="empty">Loading…</p>}
+          {files?.length === 0 && <p className="empty">No files yet.</p>}
+          {files?.map((f) => (
+            <button key={f.path} className={f.path === selected ? 'prop active' : 'prop'} onClick={() => setSelected(f.path)}>
+              <span className="title" style={{ fontFamily: 'monospace', fontWeight: 400 }}>{f.path}</span>
+              {published[f.path] && <span className="badge merged">published</span>}
+            </button>
+          ))}
+        </div>
+        <div className="detail">
+          {!selected && <p className="empty">Select a file to view.</p>}
+          {selected && (
+            <>
+              {isMd && (
+                <div className="actions">
+                  <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
+                    {pub ? 'Re-publish' : 'Publish'}
+                  </button>
+                  {!savedWebhook && <span className="empty">Set a webhook above to publish.</span>}
+                  {pub && <span className="empty">Last published {new Date(pub.publishedAt).toLocaleString()}</span>}
+                </div>
+              )}
+              {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#cb2431' : '#16a34a' }}>{publishMsg}</p>}
+              {content === null && <p className="empty">Loading…</p>}
+              {content !== null && (
+                <div className="diff-file">
+                  <h4>{selected}</h4>
+                  <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
+                </div>
+              )}
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

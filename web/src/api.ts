@@ -22,4 +22,12 @@ export const api = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id, template }),
     }).then(j),
+  getConfig: (ws: string): Promise<{ webhookUrl?: string }> =>
+    fetch(`/api/workspaces/${ws}/config`).then(j),
+  setConfig: (ws: string, webhookUrl: string): Promise<{ ok: boolean }> =>
+    fetch(`/api/workspaces/${ws}/config`, { method: 'PUT', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ webhookUrl }) }).then(j),
+  published: (ws: string): Promise<Record<string, { publishedAt: string }>> =>
+    fetch(`/api/workspaces/${ws}/published`).then(j),
+  publish: (ws: string, path: string): Promise<{ published: boolean; publishedAt: string; title: string }> =>
+    fetch(`/api/workspaces/${ws}/publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path }) }).then(j),
 };

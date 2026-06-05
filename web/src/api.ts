@@ -16,4 +16,10 @@ export const api = {
   state: (ws: string): Promise<FileNode[]> => fetch(`/api/workspaces/${ws}/state`).then(j),
   file: (ws: string, path: string): Promise<{ path: string; content: string }> =>
     fetch(`/api/workspaces/${ws}/file?path=${encodeURIComponent(path)}`).then(j),
+  createWorkspace: (id: string, template: string): Promise<{ id: string }> =>
+    fetch('/api/workspaces', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ id, template }),
+    }).then(j),
 };

@@ -9,10 +9,32 @@ export function App() {
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'proposals' | 'files'>('proposals');
+  const [creating, setCreating] = useState(false);
+  const [newId, setNewId] = useState('');
+  const [newTemplate, setNewTemplate] = useState('content-calendar');
+  const [createError, setCreateError] = useState<string | null>(null);
 
-  useEffect(() => { api.workspaces().then(setWorkspaces).catch((e) => setError(e instanceof Error ? e.message : String(e))); }, []);
+  const loadWorkspaces = () => api.workspaces().then(setWorkspaces).catch((e) => setError(e instanceof Error ? e.message : String(e)));
+  useEffect(() => { loadWorkspaces(); }, []);
+
   const loadProposals = (w: string) => api.proposals(w).then(setProposals);
   useEffect(() => { if (ws) { setTab('proposals'); loadProposals(ws); } }, [ws]);
+
+  const createWorkspace = async () => {
+    setCreateError(null);
+    try {
+      await api.createWorkspace(newId.trim(), newTemplate);
+      await loadWorkspaces();
+      setWs(newId.trim());
+      setTab('proposals');
+      setCreating(false); setNewId('');
+    } catch (e) {
+      const raw = e instanceof Error ? e.message : String(e);
+      let msg = raw;
+      try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
+      setCreateError(msg);
+    }
+  };
 
   return (
     <div className="layout">
@@ -23,6 +45,27 @@ export function App() {
           <button key={w} className={w === ws ? 'ws active' : 'ws'} onClick={() => setWs(w)}>{w}</button>
         ))}
         {error && <p className="empty" style={{ color: '#ffb4b4' }}>{error}</p>}
+        {!creating && <button className="ws newbtn" onClick={() => setCreating(true)}>+ New workspace</button>}
+        {creating && (
+          <div className="newform">
+            <input
+              className="newinput"
+              placeholder="id (a-z, 0-9, -)"
+              value={newId}
+              onChange={(e) => setNewId(e.target.value)}
+              autoFocus
+            />
+            <select className="newinput" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)}>
+              <option value="content-calendar">Content calendar</option>
+              <option value="blank">Blank</option>
+            </select>
+            <div className="newactions">
+              <button className="btn approve" disabled={!newId.trim()} onClick={createWorkspace}>Create</button>
+              <button className="btn" onClick={() => { setCreating(false); setCreateError(null); }}>Cancel</button>
+            </div>
+            {createError && <p className="empty" style={{ color: '#ffb4b4' }}>{createError}</p>}
+          </div>
+        )}
       </aside>
       <main className="main">
         {ws ? (

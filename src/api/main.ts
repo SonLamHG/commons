@@ -13,7 +13,11 @@ const app = buildApi(createEngine(root), new WorkspaceSerializer());
 const dist = join(process.cwd(), 'web', 'dist');
 if (existsSync(dist)) {
   await app.register(fastifyStatic, { root: dist });
-  app.setNotFoundHandler((_req, reply) => reply.sendFile('index.html')); // SPA fallback
+  app.setNotFoundHandler((req, reply) => {
+    // Unknown API routes must return JSON 404, NOT the SPA shell (which breaks the client's JSON parse).
+    if (req.url.startsWith('/api/')) return reply.code(404).send({ error: 'Not found', path: req.url });
+    return reply.sendFile('index.html'); // SPA fallback for app routes only
+  });
 }
 
 app.listen({ port, host: '0.0.0.0' })

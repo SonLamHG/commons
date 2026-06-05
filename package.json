@@ -10,7 +10,7 @@
     "mcp": "tsx src/mcp/stdio.ts",
     "seed": "tsx examples/seed.ts",
     "agent-sim": "tsx examples/agent-sim.ts",
-    "api": "tsx src/api/main.ts",
+    "api": "tsx watch src/api/main.ts",
     "web": "vite",
     "build:web": "vite build",
     "dev": "concurrently -n api,web -c blue,green \"npm:api\" \"npm:web\"",

@@ -17,6 +17,18 @@ export function buildApi(engine: Engine, serializer: WorkspaceSerializer): Fasti
     return engine.diffProposal(ws, id);
   });
 
+  app.get('/api/workspaces/:ws/state', async (req) => {
+    const { ws } = req.params as { ws: string };
+    return engine.readState(ws);
+  });
+
+  app.get('/api/workspaces/:ws/file', async (req) => {
+    const { ws } = req.params as { ws: string };
+    const { path } = req.query as { path?: string };
+    if (!path) throw new Error('path query param required');
+    return { path, content: await engine.readFile(ws, path) };
+  });
+
   app.post('/api/workspaces/:ws/proposals/:id/approve', async (req) => {
     const { ws, id } = req.params as { ws: string; id: string };
     return serializer.run(ws, () => engine.mergeProposal(ws, id));

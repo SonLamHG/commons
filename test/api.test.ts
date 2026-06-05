@@ -52,4 +52,17 @@ describe('API', () => {
     const list = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/proposals' });
     expect(json(list)[0].status).toBe('discarded');
   });
+
+  it('GET state returns the approved file tree', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/state' });
+    expect(res.statusCode).toBe(200);
+    const nodes = json(res);
+    expect(nodes.find((n: any) => n.path === 'a.md' && n.type === 'file')).toBeTruthy();
+  });
+
+  it('GET file returns file content', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/file?path=a.md' });
+    expect(res.statusCode).toBe(200);
+    expect(json(res)).toEqual({ path: 'a.md', content: 'hello' });
+  });
 });

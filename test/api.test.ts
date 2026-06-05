@@ -65,4 +65,35 @@ describe('API', () => {
     expect(res.statusCode).toBe(200);
     expect(json(res)).toEqual({ path: 'a.md', content: 'hello' });
   });
+
+  it('POST creates a new workspace (blank template) and it appears in the list', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'fresh', template: 'blank' } });
+    expect(res.statusCode).toBe(201);
+    expect(json(res)).toEqual({ id: 'fresh' });
+    const list = await app.inject({ method: 'GET', url: '/api/workspaces' });
+    expect(json(list)).toContain('fresh');
+    const state = await app.inject({ method: 'GET', url: '/api/workspaces/fresh/state' });
+    expect(json(state).some((n: any) => n.path === 'README.md')).toBe(true);
+  });
+
+  it('POST content-calendar template seeds starter files', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'cal', template: 'content-calendar' } });
+    expect(res.statusCode).toBe(201);
+    const state = json(await app.inject({ method: 'GET', url: '/api/workspaces/cal/state' }));
+    const paths = state.map((n: any) => n.path);
+    expect(paths).toContain('brand-voice.md');
+    expect(paths).toContain('audience.md');
+  });
+
+  it('POST rejects a duplicate workspace id with 400', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'ws1', template: 'blank' } });
+    expect(res.statusCode).toBe(400);
+    expect(json(res).error).toMatch(/already exists/);
+  });
+
+  it('POST rejects an invalid id with 400', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'bad id', template: 'blank' } });
+    expect(res.statusCode).toBe(400);
+    expect(json(res).error).toMatch(/invalid/);
+  });
 });

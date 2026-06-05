@@ -1,6 +1,12 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import type { Engine } from '../engine/types.js';
 import type { WorkspaceSerializer } from '../util/serializer.js';
+import type { PublishStore } from '../publish/store.js';
+
+function deriveTitle(content: string, path: string): string {
+  const h = content.split('\n').find((l) => l.startsWith('# '));
+  return h ? h.replace(/^#\s+/, '').trim() : (path.split('/').pop() ?? path);
+}
 
 function buildSeed(template: string, id: string): Record<string, string> {
   const seed: Record<string, string> = { 'README.md': `# ${id}\n\nA Commons workspace.\n` };
@@ -12,7 +18,7 @@ function buildSeed(template: string, id: string): Record<string, string> {
   return seed;
 }
 
-export function buildApi(engine: Engine, serializer: WorkspaceSerializer): FastifyInstance {
+export function buildApi(engine: Engine, serializer: WorkspaceSerializer, publishStore: PublishStore): FastifyInstance {
   const app = Fastify();
 
   app.get('/api/workspaces', async () => engine.listWorkspaces());
@@ -59,6 +65,50 @@ export function buildApi(engine: Engine, serializer: WorkspaceSerializer): Fasti
     const { ws, id } = req.params as { ws: string; id: string };
     await serializer.run(ws, () => engine.discardProposal(ws, id));
     return reply.send({ discarded: true });
+  });
+
+  app.get('/api/workspaces/:ws/config', async (req) => {
+    const { ws } = req.params as { ws: string };
+    return publishStore.getConfig(ws);
+  });
+
+  app.put('/api/workspaces/:ws/config', async (req) => {
+    const { ws } = req.params as { ws: string };
+    const { webhookUrl } = (req.body ?? {}) as { webhookUrl?: string };
+    await serializer.run(ws, async () => publishStore.setConfig(ws, { webhookUrl }));
+    return { ok: true };
+  });
+
+  app.get('/api/workspaces/:ws/published', async (req) => {
+    const { ws } = req.params as { ws: string };
+    return publishStore.listPublished(ws);
+  });
+
+  app.post('/api/workspaces/:ws/publish', async (req, reply) => {
+    const { ws } = req.params as { ws: string };
+    const { path } = (req.body ?? {}) as { path?: string };
+    if (!path) return reply.code(400).send({ error: 'path required' });
+    const { webhookUrl } = publishStore.getConfig(ws);
+    if (!webhookUrl) return reply.code(400).send({ error: 'no webhook configured for this workspace' });
+
+    let content: string;
+    try { content = await engine.readFile(ws, path); }
+    catch (e) { return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) }); }
+
+    const title = deriveTitle(content, path);
+    try {
+      const r = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ workspace: ws, path, title, content }),
+      });
+      if (!r.ok) return reply.code(502).send({ error: `webhook returned ${r.status}` });
+    } catch (e) {
+      return reply.code(502).send({ error: `webhook failed: ${e instanceof Error ? e.message : String(e)}` });
+    }
+
+    const rec = await serializer.run(ws, async () => publishStore.markPublished(ws, path));
+    return { published: true, publishedAt: rec.publishedAt, title };
   });
 
   return app;

@@ -2,9 +2,11 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import Fastify from 'fastify';
 import { createEngine } from '../src/engine/index.js';
 import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { buildApi } from '../src/api/server.js';
+import { createPublishStore } from '../src/publish/store.js';
 
 let root: string;
 let app: ReturnType<typeof buildApi>;
@@ -12,11 +14,11 @@ let app: ReturnType<typeof buildApi>;
 beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'commons-api-'));
   const engine = createEngine(root);
-  await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+  await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello', 'items/post-1/post.md': '# Hello World\n\nBody text here.\n' } });
   await engine.createProposal('ws1', { id: 'p1', title: 'Add b' });
   await engine.writeProposalFile('ws1', 'p1', 'b.md', 'bee');
   await engine.submitProposal('ws1', 'p1', 'add b');
-  app = buildApi(engine, new WorkspaceSerializer());
+  app = buildApi(engine, new WorkspaceSerializer(), createPublishStore(root));
 });
 afterEach(async () => {
   await app.close();
@@ -95,5 +97,51 @@ describe('API', () => {
     const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'bad id', template: 'blank' } });
     expect(res.statusCode).toBe(400);
     expect(json(res).error).toMatch(/invalid/);
+  });
+});
+
+describe('publish', () => {
+  let receiver: ReturnType<typeof Fastify>;
+  let receiverUrl: string;
+  let received: any;
+
+  beforeEach(async () => {
+    received = null;
+    receiver = Fastify();
+    receiver.post('/hook', async (req: import('fastify').FastifyRequest) => { received = req.body; return { ok: true }; });
+    const addr = await receiver.listen({ port: 0, host: '127.0.0.1' });
+    receiverUrl = addr + '/hook';
+  });
+  afterEach(async () => { await receiver.close(); });
+
+  it('PUT config then publish posts content to the webhook and marks published', async () => {
+    await app.inject({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: receiverUrl } });
+    const cfg = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/config' });
+    expect(JSON.parse(cfg.payload).webhookUrl).toBe(receiverUrl);
+
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.payload).published).toBe(true);
+
+    expect(received).toMatchObject({ workspace: 'ws1', path: 'items/post-1/post.md', title: 'Hello World' });
+    expect(received.content).toContain('Body text');
+
+    const pub = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/published' });
+    expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeDefined();
+  });
+
+  it('returns 400 when no webhook configured', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.payload).error).toMatch(/webhook/i);
+  });
+
+  it('returns 502 when the webhook fails', async () => {
+    await app.inject({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: 'http://127.0.0.1:1/nope' } });
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
+    expect(res.statusCode).toBe(502);
+    // not marked published on failure
+    const pub = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/published' });
+    expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeUndefined();
   });
 });

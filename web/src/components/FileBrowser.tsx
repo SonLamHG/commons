@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api, type FileNode } from '../api';
+import { renderMarkdown } from '../markdown';
 
 export function FileBrowser({ ws }: { ws: string }) {
   const [files, setFiles] = useState<FileNode[] | null>(null);
@@ -12,11 +13,16 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [published, setPublished] = useState<Record<string, { publishedAt: string }>>({});
   const [publishing, setPublishing] = useState(false);
   const [publishMsg, setPublishMsg] = useState<string | null>(null);
+  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes.filter((n) => n.type === 'file')))
+    .catch((e) => setError(e instanceof Error ? e.message : String(e)));
 
   useEffect(() => {
-    setSelected(null); setContent(null); setError(null); setFiles(null); setPublishMsg(null);
-    api.state(ws).then((nodes) => setFiles(nodes.filter((n) => n.type === 'file')))
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    setSelected(null); setContent(null); setError(null); setFiles(null); setPublishMsg(null); setUploadMsg(null);
+    loadFiles();
     api.getConfig(ws).then((c) => { setSavedWebhook(c.webhookUrl); setWebhook(c.webhookUrl ?? ''); }).catch(() => {});
     api.published(ws).then(setPublished).catch(() => {});
   }, [ws]);
@@ -53,6 +59,36 @@ export function FileBrowser({ ws }: { ws: string }) {
     } finally { setPublishing(false); }
   };
 
+  const onUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // allow re-uploading the same file
+    if (!file) return;
+    setUploading(true); setUploadMsg(null);
+    try {
+      const { path } = await api.uploadFile(ws, file);
+      await loadFiles();
+      setUploadMsg(`Đã thêm ${path} — agent có thể đọc làm ngữ cảnh.`);
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
+      setUploadMsg('Upload lỗi: ' + msg);
+    } finally { setUploading(false); }
+  };
+
+  const onDelete = async () => {
+    if (!selected) return;
+    if (!window.confirm(`Xóa "${selected}"? Hành động này không hoàn tác được.`)) return;
+    try {
+      await api.deleteFile(ws, selected);
+      setSelected(null); setContent(null);
+      await loadFiles();
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
+      setError('Xóa lỗi: ' + msg);
+    }
+  };
+
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
 
@@ -64,10 +100,21 @@ export function FileBrowser({ ws }: { ws: string }) {
           value={webhook} onChange={(e) => setWebhook(e.target.value)} />
         <button className="btn save" onClick={saveWebhook}>Save</button>
       </div>
+      <div className="uploadbar">
+        <div>
+          <strong>Tư liệu nguồn</strong>
+          <span className="empty"> — brief, brand-voice, ghi chú (.md, .txt, .pdf, .docx)</span>
+        </div>
+        <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
+        <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
+          {uploading ? 'Đang tải…' : '↑ Upload tài liệu'}
+        </button>
+      </div>
+      {uploadMsg && <p className="empty" style={{ padding: '0 28px', color: uploadMsg.includes('lỗi') ? '#c43d23' : '#2f6b46' }}>{uploadMsg}</p>}
       <div className="proposals">
         <div className="list">
           <h2>Files</h2>
-          {error && <p className="empty" style={{ color: '#cb2431' }}>{error}</p>}
+          {error && <p className="empty" style={{ color: '#c43d23' }}>{error}</p>}
           {files === null && <p className="empty">Loading…</p>}
           {files?.length === 0 && <p className="empty">No files yet.</p>}
           {files?.map((f) => (
@@ -81,6 +128,10 @@ export function FileBrowser({ ws }: { ws: string }) {
           {!selected && <p className="empty">Select a file to view.</p>}
           {selected && (
             <>
+              <div className="detailbar">
+                <span className="docpath">{selected}</span>
+                <button className="btn reject ghost" onClick={onDelete}>Xóa file</button>
+              </div>
               {isMd && (
                 <div className="actions">
                   <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
@@ -90,13 +141,17 @@ export function FileBrowser({ ws }: { ws: string }) {
                   {pub && <span className="empty">Last published {new Date(pub.publishedAt).toLocaleString()}</span>}
                 </div>
               )}
-              {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#cb2431' : '#16a34a' }}>{publishMsg}</p>}
+              {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#c43d23' : '#2f6b46' }}>{publishMsg}</p>}
               {content === null && <p className="empty">Loading…</p>}
               {content !== null && (
-                <div className="diff-file">
-                  <h4>{selected}</h4>
-                  <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
-                </div>
+                isMd
+                  ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
+                  : (
+                    <div className="diff-file">
+                      <h4>{selected}</h4>
+                      <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
+                    </div>
+                  )
               )}
             </>
           )}

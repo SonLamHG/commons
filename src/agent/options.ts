@@ -19,10 +19,10 @@ export const COMMONS_TOOLS = [
 const DENY_BUILTINS = [
   'Bash', 'Edit', 'Write', 'Read', 'MultiEdit', 'NotebookEdit', 'NotebookRead',
   'Glob', 'Grep', 'LS', 'WebFetch', 'WebSearch', 'TodoWrite', 'Task',
-  'KillShell', 'BashOutput', 'ExitPlanMode', 'SlashCommand',
+  'KillShell', 'BashOutput', 'ExitPlanMode', 'SlashCommand', 'ToolSearch',
 ];
 
-const MODEL = process.env.COMMONS_AGENT_MODEL ?? 'claude-sonnet-4-6';
+const MODEL = process.env.COMMONS_AGENT_MODEL ?? 'claude-haiku-4-5-20251001';
 
 function systemPrompt(workspace: string): string {
   return [

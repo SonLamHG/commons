@@ -92,6 +92,28 @@ export function createEngine(rootDir: string): Engine {
       return readFileSync(safeJoin(repoPath(workspaceId), path), 'utf8');
     },
 
+    // Human-provided source material: written straight to main (no review gate —
+    // the gate governs agent proposals, not the user's own inputs).
+    async addFile(workspaceId, path, content) {
+      const repo = repoPath(workspaceId);
+      const abs = safeJoin(repo, path);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, content);
+      const git = simpleGit(repo);
+      await git.add(fwd(path));
+      await git.commit(`add ${path}`);
+    },
+
+    // Human-initiated deletion of durable state (no review gate — symmetric with addFile).
+    async deleteFile(workspaceId, path) {
+      const repo = repoPath(workspaceId);
+      const abs = safeJoin(repo, path); // throws on unsafe path
+      if (!existsSync(abs)) throw new Error(`file not found: ${path}`);
+      const git = simpleGit(repo);
+      await git.rm(fwd(path));
+      await git.commit(`delete ${path}`);
+    },
+
     async createProposal(workspaceId, { id, title }) {
       assertSafeId('proposal', id);
       const git = simpleGit(repoPath(workspaceId));
@@ -110,6 +132,14 @@ export function createEngine(rootDir: string): Engine {
         createdAt: new Date().toISOString(),
       });
       writeMeta(workspaceId, existing);
+    },
+    async readProposalFile(workspaceId, proposalId, path) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      if (proposal.status === 'merged' || proposal.status === 'discarded') {
+        throw new Error(`proposal ${proposalId} is ${proposal.status} (no worktree)`);
+      }
+      return readFileSync(safeJoin(worktreePath(workspaceId, proposalId), path), 'utf8');
     },
     async writeProposalFile(workspaceId, proposalId, path, content) {
       const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);

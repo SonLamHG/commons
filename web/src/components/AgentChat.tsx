@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { api } from '../api';
 
 type Line = { kind: 'you' | 'text' | 'tool' | 'done' | 'error'; text: string };
@@ -17,6 +17,11 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
   const [prompt, setPrompt] = useState('');
   const [lines, setLines] = useState<Line[]>([]);
   const [busy, setBusy] = useState(false);
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [lines, busy]);
 
   const send = async () => {
     const p = prompt.trim();
@@ -38,25 +43,71 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
 
   return (
     <div className="chat">
-      <div className="chatlog">
-        {lines.length === 0 && <p className="empty">Mô tả việc bạn muốn — ví dụ: "Viết 3 post LinkedIn từ brief tháng 6". Trợ lý sẽ soạn một đề xuất để bạn duyệt.</p>}
-        {lines.map((l, i) => (
-          <div key={i} className={`chatline ${l.kind}`}>
-            {l.kind === 'tool' ? <span className="chiptool">⚙ {l.text}</span> : l.text}
+      <div className="chatlog" ref={logRef}>
+        {lines.length === 0 ? (
+          <div className="chat-empty">
+            <div className="chat-empty-ornament">✦ ✦ ✦</div>
+            <p className="chat-empty-lead">Mô tả việc bạn muốn làm</p>
+            <p className="chat-empty-example">"Viết 3 post LinkedIn từ brief tháng 6"</p>
+            <p className="chat-empty-sub">Trợ lý sẽ đọc workspace, soạn nội dung,<br/>và gửi đề xuất để bạn duyệt.</p>
           </div>
-        ))}
-        {busy && <div className="chatline tool"><span className="chiptool">…đang làm việc</span></div>}
+        ) : (
+          lines.map((l, i) => {
+            if (l.kind === 'you') return (
+              <div key={i} className="chatmsg dispatch">
+                <span className="dispatch-label">Yêu cầu</span>
+                <p className="dispatch-text">{l.text}</p>
+              </div>
+            );
+            if (l.kind === 'tool') return (
+              <div key={i} className="chatmsg step">
+                <span className="step-dot" />
+                <span className="step-label">{l.text}</span>
+              </div>
+            );
+            if (l.kind === 'text') return (
+              <div key={i} className="chatmsg reply">
+                <p>{l.text}</p>
+              </div>
+            );
+            if (l.kind === 'done') return (
+              <div key={i} className="chatmsg done-msg">
+                <span className="done-stamp">Gửi xong</span>
+                <p>{l.text}</p>
+              </div>
+            );
+            return (
+              <div key={i} className="chatmsg error-msg">
+                <p>{l.text}</p>
+              </div>
+            );
+          })
+        )}
+        {busy && (
+          <div className="chatmsg step step--busy">
+            <span className="step-dot" />
+            <span className="step-label">đang làm việc…</span>
+          </div>
+        )}
       </div>
+
       <div className="chatbox">
-        <textarea
-          value={prompt} disabled={busy}
-          placeholder="Bạn muốn trợ lý làm gì?"
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
-        />
-        <button className="btn approve" disabled={busy || !prompt.trim()} onClick={send}>
-          {busy ? 'Đang chạy…' : 'Gửi (⌘/Ctrl+Enter)'}
-        </button>
+        <div className="chatbox-card">
+          <label className="chatbox-eyebrow">Yêu cầu mới</label>
+          <textarea
+            value={prompt}
+            disabled={busy}
+            placeholder="Bạn muốn trợ lý làm gì?"
+            onChange={(e) => setPrompt(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
+          />
+          <div className="chatbox-bar">
+            <span className="chatbox-hint">⌘ / Ctrl+Enter để gửi</span>
+            <button className="btn approve" disabled={busy || !prompt.trim()} onClick={send}>
+              {busy ? 'Đang chạy…' : 'Gửi'}
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );

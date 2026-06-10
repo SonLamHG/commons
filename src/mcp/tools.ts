@@ -18,6 +18,35 @@ export interface ToolDeps {
 export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] {
   return [
     {
+      name: 'overview',
+      description:
+        'START HERE. A snapshot of every workspace with its file count and how many proposals are pending human review. Call this first to orient yourself before any other tool.',
+      inputSchema: {},
+      run: async () => {
+        const workspaces = await engine.listWorkspaces();
+        if (workspaces.length === 0) return '(no workspaces yet)';
+        const lines = await Promise.all(
+          workspaces.map(async (ws) => {
+            const nodes = await engine.readState(ws);
+            const files = nodes.filter((n) => n.type === 'file').length;
+            const proposals = await engine.listProposals(ws);
+            const pending = proposals.filter((p) => p.status === 'submitted').length;
+            return `${ws}: ${files} file(s), ${pending} pending proposal(s) awaiting review`;
+          }),
+        );
+        return lines.join('\n');
+      },
+    },
+    {
+      name: 'list_workspaces',
+      description: 'List the ids of all workspaces. Use overview instead if you also want counts.',
+      inputSchema: {},
+      run: async () => {
+        const workspaces = await engine.listWorkspaces();
+        return workspaces.length > 0 ? workspaces.join('\n') : '(no workspaces yet)';
+      },
+    },
+    {
       name: 'read_state',
       description:
         'List the files approved into a workspace (durable main state). Proposals in progress are NOT reflected here — use diff_proposal to see a proposal’s pending changes.',

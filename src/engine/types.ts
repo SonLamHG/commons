@@ -29,8 +29,11 @@ export interface Engine {
   createWorkspace(opts: { id: string; seed?: Record<string, string> }): Promise<void>;
   readState(workspaceId: string): Promise<FileNode[]>;
   readFile(workspaceId: string, path: string): Promise<string>;
+  addFile(workspaceId: string, path: string, content: string): Promise<void>;
+  deleteFile(workspaceId: string, path: string): Promise<void>;
   createProposal(workspaceId: string, opts: { id: string; title: string }): Promise<void>;
   writeProposalFile(workspaceId: string, proposalId: string, path: string, content: string): Promise<void>;
+  readProposalFile(workspaceId: string, proposalId: string, path: string): Promise<string>;
   submitProposal(workspaceId: string, proposalId: string, message: string): Promise<void>;
   diffProposal(workspaceId: string, proposalId: string): Promise<FileDiff[]>;
   mergeProposal(workspaceId: string, proposalId: string): Promise<MergeResult>;

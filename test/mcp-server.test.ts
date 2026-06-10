@@ -29,7 +29,7 @@ describe('mcp server (in-process MCP protocol)', () => {
     const { tools } = await client.listTools();
     const names = tools.map((t) => t.name).sort();
     expect(names).toEqual(
-      ['create_proposal', 'diff_proposal', 'list_proposals', 'read_file', 'read_state', 'submit_proposal', 'write_proposal_file'].sort(),
+      ['create_proposal', 'diff_proposal', 'list_proposals', 'list_workspaces', 'overview', 'read_file', 'read_state', 'submit_proposal', 'write_proposal_file'].sort(),
     );
     expect(names).not.toContain('merge_proposal');
     expect(names).not.toContain('discard_proposal');

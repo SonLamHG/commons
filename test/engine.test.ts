@@ -88,6 +88,63 @@ describe('proposal writes', () => {
       engine.writeProposalFile('ws1', 'p1', '../../escape.md', 'nope'),
     ).rejects.toThrow(/unsafe path/);
   });
+
+  it('reads the proposed (final) version of a file from the worktree', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'x' });
+    await engine.writeProposalFile('ws1', 'p1', 'a.md', 'hello world');
+    // proposal sees the new content; main is untouched
+    expect(await engine.readProposalFile('ws1', 'p1', 'a.md')).toBe('hello world');
+    expect(await engine.readFile('ws1', 'a.md')).toBe('hello');
+  });
+
+  it('rejects readProposalFile paths that escape the worktree', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createProposal('ws1', { id: 'p1', title: 'x' });
+    await expect(engine.readProposalFile('ws1', 'p1', '../../escape.md')).rejects.toThrow(/unsafe path/);
+  });
+});
+
+describe('addFile (human-provided source material)', () => {
+  it('writes a file straight to main and commits it', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.addFile('ws1', 'reference/brief.md', '# Brief\n\nLaunch in June.');
+    expect(await engine.readFile('ws1', 'reference/brief.md')).toBe('# Brief\n\nLaunch in June.');
+    const state = await engine.readState('ws1');
+    expect(state.find((n) => n.path === 'reference/brief.md' && n.type === 'file')).toBeTruthy();
+  });
+
+  it('a proposal created after an upload can read the uploaded material', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.addFile('ws1', 'reference/brief.md', 'launch June');
+    await engine.createProposal('ws1', { id: 'p1', title: 'x' });
+    expect(await engine.readProposalFile('ws1', 'p1', 'reference/brief.md')).toBe('launch June');
+  });
+
+  it('rejects addFile paths that escape the workspace', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await expect(engine.addFile('ws1', '../../escape.md', 'nope')).rejects.toThrow(/unsafe path/);
+  });
+});
+
+describe('deleteFile', () => {
+  it('removes a file from main and commits', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello', 'reference/brief.md': 'x' } });
+    await engine.deleteFile('ws1', 'reference/brief.md');
+    const state = await engine.readState('ws1');
+    expect(state.find((n) => n.path === 'reference/brief.md')).toBeUndefined();
+    expect(state.find((n) => n.path === 'a.md')).toBeTruthy();
+  });
+
+  it('throws a clean error when the file does not exist', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await expect(engine.deleteFile('ws1', 'nope.md')).rejects.toThrow(/file not found/);
+  });
+
+  it('rejects deleteFile paths that escape the workspace', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await expect(engine.deleteFile('ws1', '../../escape.md')).rejects.toThrow(/unsafe path/);
+  });
 });
 
 describe('diff', () => {

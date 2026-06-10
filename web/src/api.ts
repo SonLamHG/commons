@@ -9,6 +9,8 @@ export const api = {
   workspaces: (): Promise<string[]> => fetch('/api/workspaces').then(j),
   proposals: (ws: string): Promise<Proposal[]> => fetch(`/api/workspaces/${ws}/proposals`).then(j),
   diff: (ws: string, id: string): Promise<FileDiff[]> => fetch(`/api/workspaces/${ws}/proposals/${id}/diff`).then(j),
+  proposalFile: (ws: string, id: string, path: string): Promise<{ path: string; content: string }> =>
+    fetch(`/api/workspaces/${ws}/proposals/${id}/file?path=${encodeURIComponent(path)}`).then(j),
   approve: (ws: string, id: string): Promise<MergeResult> =>
     fetch(`/api/workspaces/${ws}/proposals/${id}/approve`, { method: 'POST' }).then(j),
   reject: (ws: string, id: string): Promise<{ discarded: boolean }> =>
@@ -16,12 +18,40 @@ export const api = {
   state: (ws: string): Promise<FileNode[]> => fetch(`/api/workspaces/${ws}/state`).then(j),
   file: (ws: string, path: string): Promise<{ path: string; content: string }> =>
     fetch(`/api/workspaces/${ws}/file?path=${encodeURIComponent(path)}`).then(j),
+  deleteFile: (ws: string, path: string): Promise<{ deleted: boolean; path: string }> =>
+    fetch(`/api/workspaces/${ws}/file?path=${encodeURIComponent(path)}`, { method: 'DELETE' }).then(j),
+  uploadFile: (ws: string, file: File): Promise<{ path: string }> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    return fetch(`/api/workspaces/${ws}/files`, { method: 'POST', body: fd }).then(j);
+  },
   createWorkspace: (id: string, template: string): Promise<{ id: string }> =>
     fetch('/api/workspaces', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id, template }),
     }).then(j),
+  agentStream: async (
+    ws: string,
+    prompt: string,
+    onEvent: (e: { type: string; text?: string; name?: string; result?: string; message?: string }) => void,
+  ): Promise<void> => {
+    const res = await fetch(`/api/workspaces/${ws}/agent`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt }),
+    });
+    if (!res.ok || !res.body) throw new Error(await res.text());
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop() ?? '';
+      for (const line of lines) if (line.trim()) onEvent(JSON.parse(line));
+    }
+  },
   getConfig: (ws: string): Promise<{ webhookUrl?: string }> =>
     fetch(`/api/workspaces/${ws}/config`).then(j),
   setConfig: (ws: string, webhookUrl: string): Promise<{ ok: boolean }> =>

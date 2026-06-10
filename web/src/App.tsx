@@ -2,13 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { api, type Proposal } from './api';
 import { ProposalList } from './components/ProposalList';
 import { FileBrowser } from './components/FileBrowser';
+import { AgentChat } from './components/AgentChat';
 
 export function App() {
   const [workspaces, setWorkspaces] = useState<string[]>([]);
   const [ws, setWs] = useState<string | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [tab, setTab] = useState<'proposals' | 'files'>('proposals');
+  const [tab, setTab] = useState<'assistant' | 'proposals' | 'files'>('assistant');
   const [creating, setCreating] = useState(false);
   const [newId, setNewId] = useState('');
   const [newTemplate, setNewTemplate] = useState('content-calendar');
@@ -18,7 +19,7 @@ export function App() {
   useEffect(() => { loadWorkspaces(); }, []);
 
   const loadProposals = (w: string) => api.proposals(w).then(setProposals);
-  useEffect(() => { if (ws) { setTab('proposals'); loadProposals(ws); } }, [ws]);
+  useEffect(() => { if (ws) { setTab('assistant'); loadProposals(ws); } }, [ws]);
 
   const createWorkspace = async () => {
     setCreateError(null);
@@ -26,7 +27,7 @@ export function App() {
       await api.createWorkspace(newId.trim(), newTemplate);
       await loadWorkspaces();
       setWs(newId.trim());
-      setTab('proposals');
+      setTab('assistant');
       setCreating(false); setNewId('');
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
@@ -71,12 +72,15 @@ export function App() {
         {ws ? (
           <>
             <div className="tabs">
+              <button className={tab === 'assistant' ? 'tab active' : 'tab'} onClick={() => setTab('assistant')}>Assistant</button>
               <button className={tab === 'proposals' ? 'tab active' : 'tab'} onClick={() => setTab('proposals')}>Proposals</button>
               <button className={tab === 'files' ? 'tab active' : 'tab'} onClick={() => setTab('files')}>Files</button>
             </div>
-            {tab === 'proposals'
-              ? <ProposalList ws={ws} proposals={proposals} onChanged={() => loadProposals(ws)} />
-              : <FileBrowser ws={ws} />}
+            {tab === 'assistant'
+              ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
+              : tab === 'proposals'
+                ? <ProposalList ws={ws} proposals={proposals} onChanged={() => loadProposals(ws)} />
+                : <FileBrowser ws={ws} />}
           </>
         ) : <p className="empty">Select a workspace.</p>}
       </main>

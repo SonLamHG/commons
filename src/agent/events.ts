@@ -27,7 +27,7 @@ export function toAgentEvent(msg: SDKMessage): AgentEvent[] {
     const content = m.message?.content ?? [];
     for (const c of content) {
       if (c.type === 'text' && c.text) out.push({ type: 'text', text: c.text });
-      else if (c.type === 'tool_use') out.push({ type: 'tool', name: c.name, input: c.input });
+      else if (c.type === 'tool_use') out.push({ type: 'tool', name: c.name ?? '', input: c.input });
     }
     return out;
   }

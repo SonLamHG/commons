@@ -41,6 +41,11 @@ describe('API', () => {
     const res = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/proposals/p1/diff' });
     expect(json(res).find((d: any) => d.path === 'b.md').status).toBe('added');
   });
+  it('GET proposal file returns the proposed (final) content', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/proposals/p1/file?path=b.md' });
+    expect(res.statusCode).toBe(200);
+    expect(json(res)).toEqual({ path: 'b.md', content: 'bee' });
+  });
   it('POST approve merges', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/proposals/p1/approve' });
     expect(res.statusCode).toBe(200);
@@ -66,6 +71,54 @@ describe('API', () => {
     const res = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/file?path=a.md' });
     expect(res.statusCode).toBe(200);
     expect(json(res)).toEqual({ path: 'a.md', content: 'hello' });
+  });
+
+  it('POST files uploads source material into reference/ and writes to main', async () => {
+    const boundary = '----commonsTest';
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="June Brief.txt"\r\nContent-Type: text/plain\r\n\r\n`),
+      Buffer.from('Launch the campaign in June.'),
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST', url: '/api/workspaces/ws1/files',
+      payload: body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+    });
+    expect(res.statusCode).toBe(201);
+    expect(json(res)).toEqual({ path: 'reference/June Brief.md' });
+
+    // It is now durable main state, readable by agents.
+    const file = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/file?path=reference/June Brief.md' });
+    expect(json(file).content).toBe('Launch the campaign in June.');
+  });
+
+  it('DELETE file removes it from main', async () => {
+    const del = await app.inject({ method: 'DELETE', url: '/api/workspaces/ws1/file?path=a.md' });
+    expect(del.statusCode).toBe(200);
+    expect(json(del)).toEqual({ deleted: true, path: 'a.md' });
+    const state = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/state' });
+    expect(json(state).find((n: any) => n.path === 'a.md')).toBeUndefined();
+  });
+
+  it('DELETE missing file returns 400', async () => {
+    const del = await app.inject({ method: 'DELETE', url: '/api/workspaces/ws1/file?path=nope.md' });
+    expect(del.statusCode).toBe(400);
+    expect(json(del).error).toMatch(/not found/);
+  });
+
+  it('POST files rejects unsupported types', async () => {
+    const boundary = '----commonsTest2';
+    const body = Buffer.concat([
+      Buffer.from(`--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="logo.png"\r\nContent-Type: image/png\r\n\r\n`),
+      Buffer.from('\x89PNG\r\n'),
+      Buffer.from(`\r\n--${boundary}--\r\n`),
+    ]);
+    const res = await app.inject({
+      method: 'POST', url: '/api/workspaces/ws1/files',
+      payload: body, headers: { 'content-type': `multipart/form-data; boundary=${boundary}` },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(json(res).error).toMatch(/unsupported/);
   });
 
   it('POST creates a new workspace (blank template) and it appears in the list', async () => {
@@ -98,6 +151,41 @@ describe('API', () => {
     expect(res.statusCode).toBe(400);
     expect(json(res).error).toMatch(/invalid/);
   });
+
+  it('POST agent streams events and creates a proposal (fake runner)', async () => {
+    const { createEngine } = await import('../src/engine/index.js');
+    const { WorkspaceSerializer } = await import('../src/util/serializer.js');
+    const { createPublishStore } = await import('../src/publish/store.js');
+    const r = mkdtempSync(join(tmpdir(), 'commons-agent-'));
+    const engine2 = createEngine(r);
+    await engine2.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+
+    const fakeRunner = {
+      run: async (_ws: string, _prompt: string, onEvent: (e: any) => void) => {
+        onEvent({ type: 'text', text: 'Drafting…' });
+        onEvent({ type: 'tool', name: 'mcp__commons__create_proposal' });
+        onEvent({ type: 'done', result: 'Submitted.', costUsd: 0.01, numTurns: 3 });
+        return { ok: true, costUsd: 0.01, numTurns: 3 };
+      },
+    };
+    const a = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r), fakeRunner);
+
+    const res = await a.inject({
+      method: 'POST', url: '/api/workspaces/ws1/agent',
+      payload: { prompt: 'write a post' }, headers: { 'content-type': 'application/json' },
+    });
+    expect(res.statusCode).toBe(200);
+    const events = res.payload.trim().split('\n').map((l) => JSON.parse(l));
+    expect(events[0]).toEqual({ type: 'text', text: 'Drafting…' });
+    expect(events.find((e: any) => e.type === 'done')).toBeTruthy();
+    await a.close();
+    rmSync(r, { recursive: true, force: true });
+  });
+
+  it('POST agent returns 400 when prompt is missing', async () => {
+    const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/agent', payload: {} });
+    expect(res.statusCode).toBe(400);
+  });
 });
 
 describe('publish', () => {
@@ -125,6 +213,10 @@ describe('publish', () => {
 
     expect(received).toMatchObject({ workspace: 'ws1', path: 'items/post-1/post.md', title: 'Hello World' });
     expect(received.content).toContain('Body text');
+    // plain-text rendition for social posts: markdown markers stripped
+    expect(received.text).toContain('Hello World');
+    expect(received.text).toContain('Body text');
+    expect(received.text).not.toContain('#');
 
     const pub = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/published' });
     expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeDefined();

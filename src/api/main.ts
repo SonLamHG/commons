@@ -5,12 +5,13 @@ import { createEngine } from '../engine/index.js';
 import { WorkspaceSerializer } from '../util/serializer.js';
 import { buildApi } from './server.js';
 import { createPublishStore } from '../publish/store.js';
+import { createClaudeRunner } from '../agent/runner.js';
 
 const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
 const port = Number(process.env.PORT ?? 8787);
 
 const publishStore = createPublishStore(root);
-const app = buildApi(createEngine(root), new WorkspaceSerializer(), publishStore);
+const app = buildApi(createEngine(root), new WorkspaceSerializer(), publishStore, createClaudeRunner(root));
 
 const dist = join(process.cwd(), 'web', 'dist');
 if (existsSync(dist)) {

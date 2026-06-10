@@ -169,17 +169,19 @@ describe('API', () => {
       },
     };
     const a = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r), fakeRunner);
-
-    const res = await a.inject({
-      method: 'POST', url: '/api/workspaces/ws1/agent',
-      payload: { prompt: 'write a post' }, headers: { 'content-type': 'application/json' },
-    });
-    expect(res.statusCode).toBe(200);
-    const events = res.payload.trim().split('\n').map((l) => JSON.parse(l));
-    expect(events[0]).toEqual({ type: 'text', text: 'Drafting…' });
-    expect(events.find((e: any) => e.type === 'done')).toBeTruthy();
-    await a.close();
-    rmSync(r, { recursive: true, force: true });
+    try {
+      const res = await a.inject({
+        method: 'POST', url: '/api/workspaces/ws1/agent',
+        payload: { prompt: 'write a post' }, headers: { 'content-type': 'application/json' },
+      });
+      expect(res.statusCode).toBe(200);
+      const events = res.payload.trim().split('\n').map((l) => JSON.parse(l));
+      expect(events[0]).toEqual({ type: 'text', text: 'Drafting…' });
+      expect(events.find((e: any) => e.type === 'done')).toBeTruthy();
+    } finally {
+      await a.close();
+      rmSync(r, { recursive: true, force: true });
+    }
   });
 
   it('POST agent returns 400 when prompt is missing', async () => {

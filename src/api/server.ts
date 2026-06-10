@@ -166,6 +166,7 @@ export function buildApi(
 
   app.post('/api/workspaces/:ws/agent', async (req, reply) => {
     const { ws } = req.params as { ws: string };
+    if (!/^[A-Za-z0-9_-]+$/.test(ws)) return reply.code(400).send({ error: 'invalid workspace id' });
     const { prompt } = (req.body ?? {}) as { prompt?: string };
     if (!prompt || !prompt.trim()) return reply.code(400).send({ error: 'prompt required' });
     if (!agentRunner) return reply.code(503).send({ error: 'agent not configured on this server' });

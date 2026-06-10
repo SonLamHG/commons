@@ -52,6 +52,22 @@ npm run demo    # watch the full lifecycle on real files + git
    ```
    The proposed draft lives on the proposal branch; `main` only changes when a human merges (`engine.mergeProposal(...)`, or the future review UI).
 
+## Web Assistant (built-in agent)
+
+Open the web app and select a workspace — the default tab is **Assistant**. Type a prompt and press **Gửi** (or ⌘/Ctrl+Enter). The assistant will:
+1. Read the workspace overview and source material
+2. Draft content as a proposal (using only the commons tools — it cannot touch the filesystem or run shell commands)
+3. Submit the proposal for your review
+
+Switch to the **Proposals** tab to approve or reject the draft.
+
+**Requirements:**
+- The `commons` dev server must be running (`npm run dev`)
+- Claude Code must be logged in on this machine (`claude` CLI), OR set `ANTHROPIC_API_KEY` for API-key auth
+- Set `COMMONS_AGENT_MODEL` env var to override the model (default: `claude-sonnet-4-6`)
+
+**Power users:** The MCP server (`npm run mcp`) remains available for direct harness integration (Claude Code, Claude Desktop). The web Assistant and MCP coexist — the Assistant simply calls the commons MCP tools under the hood.
+
 ## MCP tools (agent-facing)
 `read_state`, `read_file`, `list_proposals`, `create_proposal`, `write_proposal_file`, `submit_proposal`, `diff_proposal`. No `merge`/`discard` — human-only by design.
 

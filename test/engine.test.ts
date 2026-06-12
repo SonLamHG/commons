@@ -39,6 +39,23 @@ describe('workspace', () => {
       engine.createWorkspace({ id: 'evil', seed: { '../escape.md': 'x' } }),
     ).rejects.toThrow(/unsafe path/);
   });
+
+  it('deletes a workspace and removes it from the list', async () => {
+    await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
+    await engine.createWorkspace({ id: 'ws2', seed: { 'b.md': 'world' } });
+    expect(await engine.listWorkspaces()).toEqual(expect.arrayContaining(['ws1', 'ws2']));
+
+    await engine.deleteWorkspace('ws1');
+
+    const remaining = await engine.listWorkspaces();
+    expect(remaining).not.toContain('ws1');
+    expect(remaining).toContain('ws2');
+    expect(existsSync(join(root, 'repos', 'ws1'))).toBe(false);
+  });
+
+  it('throws when deleting an unknown workspace', async () => {
+    await expect(engine.deleteWorkspace('nope')).rejects.toThrow(/not found/);
+  });
 });
 
 describe('proposal lifecycle', () => {

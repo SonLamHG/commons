@@ -29,7 +29,10 @@ export function buildApi(
   publishStore: PublishStore,
   agentRunner?: AgentRunner,
 ): FastifyInstance {
-  const app = Fastify();
+  // forceCloseConnections: on shutdown, terminate in-flight sockets (e.g. the
+  // long-lived agent SSE stream) so app.close() resolves promptly instead of
+  // hanging — which is what would otherwise leave the port bound on restart.
+  const app = Fastify({ forceCloseConnections: true });
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
   app.get('/api/workspaces', async () => engine.listWorkspaces());
@@ -57,6 +60,20 @@ export function buildApi(
     try {
       await serializer.run(id, () => engine.createWorkspace({ id, seed: buildSeed(template ?? 'blank', id) }));
       return reply.code(201).send({ id });
+    } catch (e) {
+      return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
+    }
+  });
+
+  // Human-only: delete a workspace and everything under it. Agents have no
+  // equivalent MCP tool — destruction stays on the human side of the gate.
+  app.delete('/api/workspaces/:ws', async (req, reply) => {
+    const { ws } = req.params as { ws: string };
+    const workspaces = await engine.listWorkspaces();
+    if (!workspaces.includes(ws)) return reply.code(404).send({ error: `workspace '${ws}' not found` });
+    try {
+      await serializer.run(ws, () => engine.deleteWorkspace(ws));
+      return reply.code(200).send({ deleted: ws });
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
     }

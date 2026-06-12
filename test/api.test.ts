@@ -152,6 +152,20 @@ describe('API', () => {
     expect(json(res).error).toMatch(/invalid/);
   });
 
+  it('DELETE removes a workspace and it disappears from the list', async () => {
+    const res = await app.inject({ method: 'DELETE', url: '/api/workspaces/ws1' });
+    expect(res.statusCode).toBe(200);
+    expect(json(res)).toEqual({ deleted: 'ws1' });
+    const list = await app.inject({ method: 'GET', url: '/api/workspaces' });
+    expect(json(list)).not.toContain('ws1');
+  });
+
+  it('DELETE returns 404 for an unknown workspace', async () => {
+    const res = await app.inject({ method: 'DELETE', url: '/api/workspaces/nope' });
+    expect(res.statusCode).toBe(404);
+    expect(json(res).error).toMatch(/not found/);
+  });
+
   it('POST agent streams events and creates a proposal (fake runner)', async () => {
     const { createEngine } = await import('../src/engine/index.js');
     const { WorkspaceSerializer } = await import('../src/util/serializer.js');

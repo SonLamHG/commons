@@ -31,6 +31,8 @@ export const api = {
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ id, template }),
     }).then(j),
+  deleteWorkspace: (id: string): Promise<{ deleted: string }> =>
+    fetch(`/api/workspaces/${id}`, { method: 'DELETE' }).then(j),
   agentStream: async (
     ws: string,
     prompt: string,

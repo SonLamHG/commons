@@ -1,5 +1,5 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { join, dirname, relative, sep, isAbsolute, resolve } from 'node:path';
 import type { Engine, Proposal, FileDiff } from './types.js';
 
@@ -80,6 +80,19 @@ export function createEngine(rootDir: string): Engine {
       }
       await git.add('.');
       await git.commit('init workspace');
+    },
+
+    // Human-only: tear a workspace down entirely. Removes the git repo, any open
+    // proposal worktrees, and the meta sidecar (proposals + publish records).
+    async deleteWorkspace(id) {
+      assertSafeId('workspace', id);
+      if (!existsSync(join(repoPath(id), '.git'))) {
+        throw new Error(`workspace not found: ${id}`);
+      }
+      // worktrees first — they hold the .git repo's lockfiles open on Windows
+      rmSync(join(rootDir, 'worktrees', id), { recursive: true, force: true });
+      rmSync(repoPath(id), { recursive: true, force: true });
+      rmSync(join(rootDir, 'meta', id), { recursive: true, force: true });
     },
 
     async readState(workspaceId) {

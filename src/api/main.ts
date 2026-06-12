@@ -25,4 +25,31 @@ if (existsSync(dist)) {
 
 app.listen({ port, host: '0.0.0.0' })
   .then(() => process.stdout.write(`commons review UI on http://localhost:${port}\n`))
-  .catch((e) => { process.stderr.write(String(e) + '\n'); process.exit(1); });
+  .catch((e: NodeJS.ErrnoException) => {
+    if (e.code === 'EADDRINUSE') {
+      process.stderr.write(`port ${port} is already in use — is another api process still running?\n`);
+    } else {
+      process.stderr.write(String(e) + '\n');
+    }
+    process.exit(1);
+  });
+
+// Graceful shutdown: release the listening socket on every signal so the
+// process exits cleanly instead of lingering and holding the port (which is
+// what turns a Ctrl-C / tsx-watch restart into an orphaned 8787 listener).
+let closing = false;
+async function shutdown(signal: string): Promise<void> {
+  if (closing) return;
+  closing = true;
+  process.stderr.write(`\n${signal} received — closing server…\n`);
+  try {
+    await app.close();
+    process.exit(0);
+  } catch (e) {
+    process.stderr.write(String(e) + '\n');
+    process.exit(1);
+  }
+}
+for (const sig of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(sig, () => void shutdown(sig));
+}

@@ -27,6 +27,7 @@ export type MergeResult =
 
 export interface Engine {
   createWorkspace(opts: { id: string; seed?: Record<string, string> }): Promise<void>;
+  deleteWorkspace(id: string): Promise<void>;
   readState(workspaceId: string): Promise<FileNode[]>;
   readFile(workspaceId: string, path: string): Promise<string>;
   addFile(workspaceId: string, path: string, content: string): Promise<void>;

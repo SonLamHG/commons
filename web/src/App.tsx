@@ -21,6 +21,18 @@ export function App() {
   const loadProposals = (w: string) => api.proposals(w).then(setProposals);
   useEffect(() => { if (ws) { setTab('assistant'); loadProposals(ws); } }, [ws]);
 
+  const deleteWorkspace = async (w: string) => {
+    if (!window.confirm(`Xóa workspace "${w}"?\nToàn bộ proposals và file sẽ bị xóa vĩnh viễn — không khôi phục được.`)) return;
+    setError(null);
+    try {
+      await api.deleteWorkspace(w);
+      if (ws === w) setWs(null);
+      await loadWorkspaces();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
   const createWorkspace = async () => {
     setCreateError(null);
     try {
@@ -42,10 +54,20 @@ export function App() {
       <aside className="sidebar">
         <h1>Commons</h1>
         <h2>Workspaces</h2>
-        {workspaces.map((w) => (
-          <button key={w} className={w === ws ? 'ws active' : 'ws'} onClick={() => setWs(w)}>{w}</button>
-        ))}
-        {error && <p className="empty" style={{ color: '#ffb4b4' }}>{error}</p>}
+        <div className="ws-list">
+          {workspaces.map((w) => (
+            <div key={w} className="ws-row">
+              <button className={w === ws ? 'ws active' : 'ws'} onClick={() => setWs(w)}>{w}</button>
+              <button
+                className="ws-del"
+                title={`Xóa workspace ${w}`}
+                aria-label={`Xóa workspace ${w}`}
+                onClick={() => deleteWorkspace(w)}
+              >×</button>
+            </div>
+          ))}
+        </div>
+        {error && <p className="empty" style={{ color: 'var(--vermilion)' }}>{error}</p>}
         {!creating && <button className="ws newbtn" onClick={() => setCreating(true)}>+ New workspace</button>}
         {creating && (
           <div className="newform">
@@ -64,9 +86,13 @@ export function App() {
               <button className="btn approve" disabled={!newId.trim()} onClick={createWorkspace}>Create</button>
               <button className="btn" onClick={() => { setCreating(false); setCreateError(null); }}>Cancel</button>
             </div>
-            {createError && <p className="empty" style={{ color: '#ffb4b4' }}>{createError}</p>}
+            {createError && <p className="empty" style={{ color: 'var(--vermilion)' }}>{createError}</p>}
           </div>
         )}
+        <div className="colophon">
+          <span className="colophon-rule" />
+          <p>Agents propose · humans merge.<br />Branch <b>main</b> is the approved record.</p>
+        </div>
       </aside>
       <main className="main">
         {ws ? (
@@ -82,7 +108,25 @@ export function App() {
                 ? <ProposalList ws={ws} proposals={proposals} onChanged={() => loadProposals(ws)} />
                 : <FileBrowser ws={ws} />}
           </>
-        ) : <p className="empty">Select a workspace.</p>}
+        ) : (
+          <div className="frontpage">
+            <div className="frontpage-inner">
+              <span className="kicker">The Commons Review Desk</span>
+              <h2 className="frontpage-head">Nothing on the desk<span className="period">.</span></h2>
+              <div className="dblrule"><span /><span /></div>
+              <p className="frontpage-lede">
+                Pick a workspace from the masthead to read its proposals, browse files,
+                or hand work to the assistant. Every change waits here for your approval —
+                nothing reaches <b>main</b> until you merge it.
+              </p>
+              <div className="frontpage-cues">
+                <span><i className="dot indigo" /> Proposals await review</span>
+                <span><i className="dot forest" /> You hold the merge</span>
+                <span><i className="dot amber" /> Agents never touch main</span>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

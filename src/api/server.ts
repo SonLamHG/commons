@@ -8,6 +8,18 @@ import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
 import { extractText, referencePath } from '../upload/extract.js';
 
+function mimeForPath(path: string): string {
+  const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
+  switch (ext) {
+    case '.png': return 'image/png';
+    case '.jpg':
+    case '.jpeg': return 'image/jpeg';
+    case '.webp': return 'image/webp';
+    case '.gif': return 'image/gif';
+    default: return 'application/octet-stream';
+  }
+}
+
 function deriveTitle(content: string, path: string): string {
   const h = content.split('\n').find((l) => l.startsWith('# '));
   return h ? h.replace(/^#\s+/, '').trim() : (path.split('/').pop() ?? path);
@@ -115,6 +127,30 @@ export function buildApi(
   app.get('/api/workspaces/:ws/state', async (req) => {
     const { ws } = req.params as { ws: string };
     return engine.readState(ws);
+  });
+
+  app.get('/api/workspaces/:ws/asset', async (req, reply) => {
+    const { ws } = req.params as { ws: string };
+    const { path } = req.query as { path?: string };
+    if (!path) return reply.code(400).send({ error: 'path query param required' });
+    try {
+      const bytes = await engine.readFileBytes(ws, path);
+      return reply.type(mimeForPath(path)).send(bytes);
+    } catch (e) {
+      return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
+    }
+  });
+
+  app.get('/api/workspaces/:ws/proposals/:id/asset', async (req, reply) => {
+    const { ws, id } = req.params as { ws: string; id: string };
+    const { path } = req.query as { path?: string };
+    if (!path) return reply.code(400).send({ error: 'path query param required' });
+    try {
+      const bytes = await engine.readProposalFileBytes(ws, id, path);
+      return reply.type(mimeForPath(path)).send(bytes);
+    } catch (e) {
+      return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
+    }
   });
 
   app.delete('/api/workspaces/:ws/file', async (req, reply) => {

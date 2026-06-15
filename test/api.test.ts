@@ -217,6 +217,54 @@ describe('API', () => {
     const res = await app.inject({ method: 'POST', url: '/api/workspaces/ws1/agent', payload: {} });
     expect(res.statusCode).toBe(400);
   });
+
+  it('serves a merged image as bytes with the right content-type', async () => {
+    const { createEngine } = await import('../src/engine/index.js');
+    const { WorkspaceSerializer } = await import('../src/util/serializer.js');
+    const { createPublishStore } = await import('../src/publish/store.js');
+    const r = mkdtempSync(join(tmpdir(), 'commons-img-'));
+    const engine2 = createEngine(r);
+    const imgApp = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r));
+    try {
+      await engine2.createWorkspace({ id: 'imgws', seed: { 'README.md': '# x\n' } });
+      await engine2.createProposal('imgws', { id: 'p1', title: 't' });
+      const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 9, 8, 7]);
+      await engine2.writeProposalFileBytes('imgws', 'p1', 'assets/c.png', png);
+      await engine2.submitProposal('imgws', 'p1', 'add');
+      await engine2.mergeProposal('imgws', 'p1');
+
+      const res = await imgApp.inject({ method: 'GET', url: '/api/workspaces/imgws/asset?path=assets/c.png' });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('image/png');
+      expect(Buffer.compare(res.rawPayload, png)).toBe(0);
+    } finally {
+      await imgApp.close();
+      rmSync(r, { recursive: true, force: true });
+    }
+  });
+
+  it('serves a proposal image as bytes with the right content-type', async () => {
+    const { createEngine } = await import('../src/engine/index.js');
+    const { WorkspaceSerializer } = await import('../src/util/serializer.js');
+    const { createPublishStore } = await import('../src/publish/store.js');
+    const r = mkdtempSync(join(tmpdir(), 'commons-img2-'));
+    const engine2 = createEngine(r);
+    const imgApp = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r));
+    try {
+      await engine2.createWorkspace({ id: 'imgws2', seed: { 'README.md': '# x\n' } });
+      await engine2.createProposal('imgws2', { id: 'p2', title: 't' });
+      const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]);
+      await engine2.writeProposalFileBytes('imgws2', 'p2', 'assets/d.png', png);
+
+      const res = await imgApp.inject({ method: 'GET', url: '/api/workspaces/imgws2/proposals/p2/asset?path=assets/d.png' });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('image/png');
+      expect(Buffer.compare(res.rawPayload, png)).toBe(0);
+    } finally {
+      await imgApp.close();
+      rmSync(r, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('publish', () => {

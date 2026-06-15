@@ -293,3 +293,24 @@ describe('listWorkspaces', () => {
     expect((await engine.listWorkspaces()).sort()).toEqual(['alpha', 'beta']);
   });
 });
+
+describe('binary file round-trip', () => {
+  it('round-trips binary files through a proposal and merge', async () => {
+    const ws = 'bin-ws';
+    await engine.createWorkspace({ id: ws, seed: { 'README.md': '# x\n' } });
+    await engine.createProposal(ws, { id: 'p1', title: 'add image' });
+
+    const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+    await engine.writeProposalFileBytes(ws, 'p1', 'assets/cover.png', png);
+
+    const inProposal = await engine.readProposalFileBytes(ws, 'p1', 'assets/cover.png');
+    expect(Buffer.compare(inProposal, png)).toBe(0);
+
+    await engine.submitProposal(ws, 'p1', 'add cover');
+    const res = await engine.mergeProposal(ws, 'p1');
+    expect(res.merged).toBe(true);
+
+    const onMain = await engine.readFileBytes(ws, 'assets/cover.png');
+    expect(Buffer.compare(onMain, png)).toBe(0);
+  });
+});

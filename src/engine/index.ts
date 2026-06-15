@@ -146,6 +146,31 @@ export function createEngine(rootDir: string): Engine {
       });
       writeMeta(workspaceId, existing);
     },
+    async readFileBytes(workspaceId, path) {
+      return readFileSync(safeJoin(repoPath(workspaceId), path));
+    },
+
+    async readProposalFileBytes(workspaceId, proposalId, path) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      if (proposal.status === 'merged' || proposal.status === 'discarded') {
+        throw new Error(`proposal ${proposalId} is ${proposal.status} (no worktree)`);
+      }
+      return readFileSync(safeJoin(worktreePath(workspaceId, proposalId), path));
+    },
+
+    async writeProposalFileBytes(workspaceId, proposalId, path, bytes) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      if (proposal.status === 'merged' || proposal.status === 'discarded') {
+        throw new Error(`proposal ${proposalId} is ${proposal.status} (no worktree)`);
+      }
+      const wt = worktreePath(workspaceId, proposalId);
+      const abs = safeJoin(wt, path);
+      mkdirSync(dirname(abs), { recursive: true });
+      writeFileSync(abs, bytes);
+    },
+
     async readProposalFile(workspaceId, proposalId, path) {
       const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
       if (!proposal) throw new Error(`proposal not found: ${proposalId}`);

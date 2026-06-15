@@ -35,6 +35,9 @@ export interface Engine {
   createProposal(workspaceId: string, opts: { id: string; title: string }): Promise<void>;
   writeProposalFile(workspaceId: string, proposalId: string, path: string, content: string): Promise<void>;
   readProposalFile(workspaceId: string, proposalId: string, path: string): Promise<string>;
+  writeProposalFileBytes(workspaceId: string, proposalId: string, path: string, bytes: Buffer): Promise<void>;
+  readProposalFileBytes(workspaceId: string, proposalId: string, path: string): Promise<Buffer>;
+  readFileBytes(workspaceId: string, path: string): Promise<Buffer>;
   submitProposal(workspaceId: string, proposalId: string, message: string): Promise<void>;
   diffProposal(workspaceId: string, proposalId: string): Promise<FileDiff[]>;
   mergeProposal(workspaceId: string, proposalId: string): Promise<MergeResult>;

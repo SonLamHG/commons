@@ -11,6 +11,7 @@ import type { ImageGenerator } from '../src/image/types.js';
 describe('generate_image tool', () => {
   let root: string;
   let tools: ReturnType<typeof createTools>;
+  let engine: ReturnType<typeof createEngine>;
 
   const fakeGen: ImageGenerator = {
     async generate() {
@@ -20,7 +21,7 @@ describe('generate_image tool', () => {
 
   beforeEach(async () => {
     root = mkdtempSync(join(tmpdir(), 'commons-tools-'));
-    const engine = createEngine(root);
+    engine = createEngine(root);
     tools = createTools({ engine, serializer: new WorkspaceSerializer(), genId: generateId, imageGenerator: fakeGen });
     await engine.createWorkspace({ id: 'ws', seed: { 'README.md': '# x\n' } });
   });
@@ -41,5 +42,8 @@ describe('generate_image tool', () => {
     const diffTool = tools.find((t) => t.name === 'diff_proposal')!;
     const diff = await diffTool.run({ workspace: 'ws', proposalId: id });
     expect(diff).toContain('assets/cat.png');
+
+    const onDisk = await engine.readProposalFileBytes('ws', id, 'assets/cat.png');
+    expect(Buffer.compare(onDisk, Buffer.from([0x89, 0x50, 0x4e, 0x47, 1, 2, 3]))).toBe(0);
   });
 });

@@ -1,7 +1,7 @@
 import { z, type ZodRawShape } from 'zod';
 import type { Engine } from '../engine/types.js';
 import type { WorkspaceSerializer } from '../util/serializer.js';
-import type { ImageGenerator } from '../image/types.js';
+import type { ImageGenerator, GeneratedImage } from '../image/types.js';
 
 export interface ToolDef {
   name: string;
@@ -110,7 +110,7 @@ export function createTools({ engine, serializer, genId, imageGenerator }: ToolD
         aspectRatio: z.enum(['1:1', '16:9', '9:16']).optional(),
       },
       run: async ({ workspace, proposalId, prompt, path, aspectRatio }) => {
-        let image;
+        let image: GeneratedImage;
         try {
           image = await imageGenerator.generate({ prompt, aspectRatio });
         } catch (e) {
@@ -119,8 +119,8 @@ export function createTools({ engine, serializer, genId, imageGenerator }: ToolD
         await serializer.run(workspace, () =>
           engine.writeProposalFileBytes(workspace, proposalId, path, image.bytes),
         );
-        const kb = Math.round(image.bytes.length / 1024);
-        return `wrote ${path} (${image.mime}, ${kb}KB). Reference it in your post as ![alt](${path}).`;
+        const kb = Math.max(1, Math.round(image.bytes.length / 1024));
+        return `wrote ${path} (${image.mime}, ${kb}KB). Reference it in your post Markdown as: ![alt](${path})`;
       },
     },
     {

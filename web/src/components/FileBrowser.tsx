@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type FileNode } from '../api';
 import { renderMarkdown } from '../markdown';
 import { buildTree } from '../tree';
@@ -91,6 +91,7 @@ export function FileBrowser({ ws }: { ws: string }) {
     }
   };
 
+  const tree = useMemo(() => buildTree(files ?? []), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
 
@@ -121,7 +122,7 @@ export function FileBrowser({ ws }: { ws: string }) {
           {files !== null && files.length === 0 && <p className="empty">No files yet.</p>}
           {files !== null && files.length > 0 && (
             <FileTree
-              nodes={buildTree(files)}
+              nodes={tree}
               selected={selected}
               onSelect={setSelected}
               published={published}

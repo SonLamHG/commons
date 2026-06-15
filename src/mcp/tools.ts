@@ -111,10 +111,13 @@ export function createTools({ engine, serializer, genId, imageGenerator }: ToolD
       },
       run: async ({ workspace, proposalId, prompt, path, aspectRatio }) => {
         let image: GeneratedImage;
+        process.stderr.write(`[generate_image] called: ${workspace}/${proposalId} -> ${path}\n`);
         try {
           image = await imageGenerator.generate({ prompt, aspectRatio });
         } catch (e) {
-          return `image generation failed: ${e instanceof Error ? e.message : String(e)}`;
+          const msg = e instanceof Error ? e.message : String(e);
+          process.stderr.write(`[generate_image] FAILED: ${msg}\n`);
+          return `image generation failed: ${msg}`;
         }
         await serializer.run(workspace, () =>
           engine.writeProposalFileBytes(workspace, proposalId, path, image.bytes),

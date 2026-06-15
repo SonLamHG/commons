@@ -23,7 +23,9 @@ export function createImageGenerator(): ImageGenerator {
       const res = await ai.models.generateContent({
         model,
         contents: fullPrompt,
-        config: { responseModalities: [Modality.IMAGE] },
+        // This model requires TEXT alongside IMAGE; IMAGE-only yields no image part.
+        // It returns an interleaved text + image response; we extract the image part below.
+        config: { responseModalities: [Modality.TEXT, Modality.IMAGE] },
       });
 
       const parts = res.candidates?.[0]?.content?.parts ?? [];

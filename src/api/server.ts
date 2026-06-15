@@ -1,5 +1,6 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { Readable } from 'node:stream';
+import { posix } from 'node:path';
 import type { Engine } from '../engine/types.js';
 import type { WorkspaceSerializer } from '../util/serializer.js';
 import type { PublishStore } from '../publish/store.js';
@@ -18,6 +19,17 @@ function mimeForPath(path: string): string {
     case '.gif': return 'image/gif';
     default: return 'application/octet-stream';
   }
+}
+
+/** First Markdown image reference in the post, resolved to a workspace-relative path. */
+function firstImagePath(content: string, postPath: string): string | null {
+  const m = /!\[[^\]]*\]\(([^)]+)\)/.exec(content);
+  if (!m) return null;
+  const ref = m[1].trim().split(/\s+/)[0]; // drop optional "title"
+  if (/^https?:\/\//i.test(ref) || ref.startsWith('data:')) return null;
+  const dir = posix.dirname(postPath.replace(/\\/g, '/'));
+  const resolved = posix.normalize(posix.join(dir, ref));
+  return resolved.startsWith('..') ? null : resolved;
 }
 
 function deriveTitle(content: string, path: string): string {
@@ -213,11 +225,25 @@ export function buildApi(
 
     const title = deriveTitle(content, path);
     const text = toPlainText(content);
+
+    let image: { filename: string; mime: string; base64: string } | undefined;
+    const imgPath = firstImagePath(content, path);
+    if (imgPath) {
+      try {
+        const bytes = await engine.readFileBytes(ws, imgPath);
+        image = {
+          filename: imgPath.split('/').pop() ?? 'image',
+          mime: mimeForPath(imgPath),
+          base64: bytes.toString('base64'),
+        };
+      } catch { /* image referenced but missing — publish text-only */ }
+    }
+
     try {
       const r = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ workspace: ws, path, title, content, text }),
+        body: JSON.stringify({ workspace: ws, path, title, content, text, ...(image ? { image } : {}) }),
       });
       if (!r.ok) return reply.code(502).send({ error: `webhook returned ${r.status}` });
     } catch (e) {

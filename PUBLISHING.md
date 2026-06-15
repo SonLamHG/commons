@@ -10,12 +10,18 @@
   "path": "items/post-1/post.md",
   "title": "Tiêu đề suy ra từ dòng # đầu tiên",
   "content": "# Tiêu đề\n\nNội dung **markdown thô**...",  // giữ nguyên markdown
-  "text": "Tiêu đề\n\nNội dung markdown thô..."             // đã strip #, **, [](), `, bullets→•
+  "text": "Tiêu đề\n\nNội dung markdown thô...",            // đã strip #, **, [](), `, bullets→•
+  "image": {                         // CHỈ có khi bài tham chiếu 1 ảnh trong assets/
+    "filename": "cover.png",
+    "mime": "image/png",
+    "base64": "iVBORw0KGgo..."       // decode base64 -> file nhị phân để đăng kèm
+  }
 }
 ```
 
 - **`content`** = markdown thô. Dùng cho nơi tự render markdown (hoặc Discord — field `content` trùng tên field Discord cần nên hoạt động trực tiếp).
 - **`text`** = bản plain-text. **Dùng cái này khi đăng lên LinkedIn / Facebook** (chúng không render markdown).
+- **`image`** *(tùy chọn)* = ảnh đầu tiên bài viết tham chiếu, dưới dạng base64. Trong Make, dùng module **Tools → Base64 Decode** để giải mã `image.base64` thành file nhị phân, rồi map file đó vào trường "Image" / "Media" của module đăng bài.
 
 > commons CHỈ đánh dấu file là "published" **sau khi** webhook trả về 2xx. Webhook lỗi → trả 502, không đánh dấu.
 

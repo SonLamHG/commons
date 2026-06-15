@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -314,5 +314,76 @@ describe('publish', () => {
     // not marked published on failure
     const pub = await app.inject({ method: 'GET', url: '/api/workspaces/ws1/published' });
     expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeUndefined();
+  });
+
+  it('attaches the first image as base64 in the webhook payload', async () => {
+    const { createEngine } = await import('../src/engine/index.js');
+    const { WorkspaceSerializer } = await import('../src/util/serializer.js');
+    const { createPublishStore } = await import('../src/publish/store.js');
+    const r = mkdtempSync(join(tmpdir(), 'commons-pub-img-'));
+    const engine2 = createEngine(r);
+    const pubApp = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r));
+    try {
+      const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 5, 5, 5]);
+      await engine2.createWorkspace({ id: 'imgpub', seed: { 'README.md': '# x\n' } });
+      await engine2.createProposal('imgpub', { id: 'pp', title: 'add post' });
+      await engine2.writeProposalFile('imgpub', 'pp', 'items/post.md', '# Hi\n\n![cover](../assets/cover.png)\n');
+      await engine2.writeProposalFileBytes('imgpub', 'pp', 'assets/cover.png', png);
+      await engine2.submitProposal('imgpub', 'pp', 'add post');
+      await engine2.mergeProposal('imgpub', 'pp');
+
+      let capturedBody: any = null;
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      );
+
+      await pubApp.inject({ method: 'PUT', url: '/api/workspaces/imgpub/config', payload: { webhookUrl: 'https://example.com/hook' } });
+      const res = await pubApp.inject({ method: 'POST', url: '/api/workspaces/imgpub/publish', payload: { path: 'items/post.md' } });
+
+      expect(res.statusCode).toBe(200);
+      const callArgs = fetchSpy.mock.calls[0];
+      capturedBody = JSON.parse((callArgs![1] as RequestInit).body as string);
+
+      expect(capturedBody.image).toBeDefined();
+      expect(capturedBody.image.mime).toBe('image/png');
+      expect(capturedBody.image.filename).toBe('cover.png');
+      expect(Buffer.from(capturedBody.image.base64, 'base64').length).toBe(png.length);
+
+      fetchSpy.mockRestore();
+    } finally {
+      await pubApp.close();
+      rmSync(r, { recursive: true, force: true });
+    }
+  });
+
+  it('sends no image field when post has no image reference', async () => {
+    const { createEngine } = await import('../src/engine/index.js');
+    const { WorkspaceSerializer } = await import('../src/util/serializer.js');
+    const { createPublishStore } = await import('../src/publish/store.js');
+    const r = mkdtempSync(join(tmpdir(), 'commons-pub-noimg-'));
+    const engine2 = createEngine(r);
+    const pubApp = buildApi(engine2, new WorkspaceSerializer(), createPublishStore(r));
+    try {
+      await engine2.createWorkspace({ id: 'noimg', seed: { 'items/post.md': '# Plain\n\nNo images here.\n' } });
+
+      let capturedBody: any = null;
+      const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+        new Response(JSON.stringify({ ok: true }), { status: 200 }),
+      );
+
+      await pubApp.inject({ method: 'PUT', url: '/api/workspaces/noimg/config', payload: { webhookUrl: 'https://example.com/hook' } });
+      const res = await pubApp.inject({ method: 'POST', url: '/api/workspaces/noimg/publish', payload: { path: 'items/post.md' } });
+
+      expect(res.statusCode).toBe(200);
+      const callArgs = fetchSpy.mock.calls[0];
+      capturedBody = JSON.parse((callArgs![1] as RequestInit).body as string);
+
+      expect(capturedBody.image).toBeUndefined();
+
+      fetchSpy.mockRestore();
+    } finally {
+      await pubApp.close();
+      rmSync(r, { recursive: true, force: true });
+    }
   });
 });

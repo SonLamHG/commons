@@ -1,6 +1,7 @@
 import { z, type ZodRawShape } from 'zod';
 import type { Engine } from '../engine/types.js';
 import type { WorkspaceSerializer } from '../util/serializer.js';
+import type { ImageGenerator } from '../image/types.js';
 
 export interface ToolDef {
   name: string;
@@ -13,9 +14,10 @@ export interface ToolDeps {
   engine: Engine;
   serializer: WorkspaceSerializer;
   genId: (prefix?: string) => string;
+  imageGenerator: ImageGenerator;
 }
 
-export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] {
+export function createTools({ engine, serializer, genId, imageGenerator }: ToolDeps): ToolDef[] {
   return [
     {
       name: 'overview',
@@ -91,6 +93,34 @@ export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] 
       run: async ({ workspace, proposalId, path, content }) => {
         await serializer.run(workspace, () => engine.writeProposalFile(workspace, proposalId, path, content));
         return `wrote ${path}`;
+      },
+    },
+    {
+      name: 'generate_image',
+      description:
+        'Generate an image for a post and save it inside a proposal worktree. ' +
+        'Save under assets/ (e.g. assets/<item>/cover.png). After it succeeds, reference ' +
+        'the image in your post Markdown with ![alt](<relative path to the image>) so it ' +
+        'shows up in review and gets attached when published.',
+      inputSchema: {
+        workspace: z.string(),
+        proposalId: z.string(),
+        prompt: z.string(),
+        path: z.string(),
+        aspectRatio: z.enum(['1:1', '16:9', '9:16']).optional(),
+      },
+      run: async ({ workspace, proposalId, prompt, path, aspectRatio }) => {
+        let image;
+        try {
+          image = await imageGenerator.generate({ prompt, aspectRatio });
+        } catch (e) {
+          return `image generation failed: ${e instanceof Error ? e.message : String(e)}`;
+        }
+        await serializer.run(workspace, () =>
+          engine.writeProposalFileBytes(workspace, proposalId, path, image.bytes),
+        );
+        const kb = Math.round(image.bytes.length / 1024);
+        return `wrote ${path} (${image.mime}, ${kb}KB). Reference it in your post as ![alt](${path}).`;
       },
     },
     {

@@ -6,7 +6,18 @@ import { createEngine } from '../src/engine/index.js';
 import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { generateId } from '../src/util/id.js';
 import { createTools } from '../src/mcp/tools.js';
-import type { ToolDef } from '../src/mcp/tools.js';
+import type { ToolDef, ToolDeps } from '../src/mcp/tools.js';
+import type { ImageGenerator } from '../src/image/types.js';
+
+const noopImageGenerator: ImageGenerator = {
+  async generate() {
+    return { bytes: Buffer.from([]), mime: 'image/png' };
+  },
+};
+
+function makeTools(deps: Omit<ToolDeps, 'imageGenerator'>) {
+  return createTools({ ...deps, imageGenerator: noopImageGenerator });
+}
 
 let root: string;
 let tools: Record<string, ToolDef>;
@@ -15,7 +26,7 @@ beforeEach(async () => {
   root = mkdtempSync(join(tmpdir(), 'commons-mcp-'));
   const engine = createEngine(root);
   await engine.createWorkspace({ id: 'ws1', seed: { 'a.md': 'hello' } });
-  const list = createTools({ engine, serializer: new WorkspaceSerializer(), genId: generateId });
+  const list = makeTools({ engine, serializer: new WorkspaceSerializer(), genId: generateId });
   tools = Object.fromEntries(list.map((t) => [t.name, t]));
 });
 afterEach(() => rmSync(root, { recursive: true, force: true }));
@@ -23,7 +34,7 @@ afterEach(() => rmSync(root, { recursive: true, force: true }));
 describe('mcp tools', () => {
   it('exposes the agent-facing surface and NOT merge/discard', () => {
     expect(Object.keys(tools).sort()).toEqual(
-      ['create_proposal', 'diff_proposal', 'list_proposals', 'list_workspaces', 'overview', 'read_file', 'read_state', 'submit_proposal', 'write_proposal_file'].sort(),
+      ['create_proposal', 'diff_proposal', 'generate_image', 'list_proposals', 'list_workspaces', 'overview', 'read_file', 'read_state', 'submit_proposal', 'write_proposal_file'].sort(),
     );
     expect(tools['merge_proposal']).toBeUndefined();
     expect(tools['discard_proposal']).toBeUndefined();
@@ -70,7 +81,7 @@ describe('mcp tools', () => {
   });
 
   it('write_proposal_file description guides agents to drafts/', () => {
-    const list = createTools({ engine: createEngine(root), serializer: new WorkspaceSerializer(), genId: generateId });
+    const list = makeTools({ engine: createEngine(root), serializer: new WorkspaceSerializer(), genId: generateId });
     const t = list.find((x) => x.name === 'write_proposal_file')!;
     expect(t.description).toContain('drafts/');
   });

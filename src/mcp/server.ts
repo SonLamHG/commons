@@ -3,10 +3,11 @@ import type { Engine } from '../engine/types.js';
 import { WorkspaceSerializer } from '../util/serializer.js';
 import { generateId } from '../util/id.js';
 import { createTools } from './tools.js';
+import { createImageGenerator } from '../image/gemini.js';
 
 export function buildServer(engine: Engine): McpServer {
   const server = new McpServer({ name: 'commons', version: '0.1.0' });
-  const tools = createTools({ engine, serializer: new WorkspaceSerializer(), genId: generateId });
+  const tools = createTools({ engine, serializer: new WorkspaceSerializer(), genId: generateId, imageGenerator: createImageGenerator() });
   for (const t of tools) {
     server.registerTool(
       t.name,

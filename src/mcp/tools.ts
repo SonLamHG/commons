@@ -84,7 +84,9 @@ export function createTools({ engine, serializer, genId }: ToolDeps): ToolDef[] 
     },
     {
       name: 'write_proposal_file',
-      description: 'Write a file inside a proposal (does not touch durable state until merged by a human).',
+      description:
+        'Write a file inside a proposal (does not touch durable state until merged by a human). ' +
+        'Place drafted content under drafts/, read background from reference/, and never overwrite reference/.',
       inputSchema: { workspace: z.string(), proposalId: z.string(), path: z.string(), content: z.string() },
       run: async ({ workspace, proposalId, path, content }) => {
         await serializer.run(workspace, () => engine.writeProposalFile(workspace, proposalId, path, content));

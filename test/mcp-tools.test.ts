@@ -68,4 +68,10 @@ describe('mcp tools', () => {
   it('read_file returns content', async () => {
     expect(await tools['read_file'].run({ workspace: 'ws1', path: 'a.md' })).toBe('hello');
   });
+
+  it('write_proposal_file description guides agents to drafts/', () => {
+    const list = createTools({ engine: createEngine(root), serializer: new WorkspaceSerializer(), genId: generateId });
+    const t = list.find((x) => x.name === 'write_proposal_file')!;
+    expect(t.description).toContain('drafts/');
+  });
 });

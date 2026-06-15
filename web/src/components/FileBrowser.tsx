@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type FileNode } from '../api';
 import { renderMarkdown } from '../markdown';
+import { buildTree } from '../tree';
+import { FileTree } from './FileTree';
 
 export function FileBrowser({ ws }: { ws: string }) {
   const [files, setFiles] = useState<FileNode[] | null>(null);
@@ -17,7 +19,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [uploading, setUploading] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
-  const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes.filter((n) => n.type === 'file')))
+  const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes))
     .catch((e) => setError(e instanceof Error ? e.message : String(e)));
 
   useEffect(() => {
@@ -89,6 +91,7 @@ export function FileBrowser({ ws }: { ws: string }) {
     }
   };
 
+  const tree = useMemo(() => buildTree(files ?? []), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
 
@@ -116,13 +119,15 @@ export function FileBrowser({ ws }: { ws: string }) {
           <h2>Files</h2>
           {error && <p className="empty" style={{ color: '#c43d23' }}>{error}</p>}
           {files === null && <p className="empty">Loading…</p>}
-          {files?.length === 0 && <p className="empty">No files yet.</p>}
-          {files?.map((f) => (
-            <button key={f.path} className={f.path === selected ? 'prop active' : 'prop'} onClick={() => setSelected(f.path)}>
-              <span className="title" style={{ fontFamily: 'monospace', fontWeight: 400 }}>{f.path}</span>
-              {published[f.path] && <span className="badge merged">published</span>}
-            </button>
-          ))}
+          {files !== null && files.length === 0 && <p className="empty">No files yet.</p>}
+          {files !== null && files.length > 0 && (
+            <FileTree
+              nodes={tree}
+              selected={selected}
+              onSelect={setSelected}
+              published={published}
+            />
+          )}
         </div>
         <div className="detail">
           {!selected && <p className="empty">Select a file to view.</p>}

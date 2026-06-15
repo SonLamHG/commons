@@ -14,7 +14,18 @@ function deriveTitle(content: string, path: string): string {
 }
 
 function buildSeed(template: string, id: string): Record<string, string> {
-  const seed: Record<string, string> = { 'README.md': `# ${id}\n\nA Commons workspace.\n` };
+  const seed: Record<string, string> = {
+    'README.md': `# ${id}\n\nA Commons workspace.\n`,
+    'reference/README.md':
+      '# reference/\n\nSource material the agent reads: briefs, brand voice, notes. ' +
+      'User uploads land here. Do not overwrite these.\n',
+    'drafts/README.md':
+      '# drafts/\n\nContent the agent is drafting. New drafts belong here.\n',
+    'published/README.md':
+      '# published/\n\nFinalized or published versions, placed here by hand.\n',
+    'assets/README.md':
+      '# assets/\n\nImages and supporting files.\n',
+  };
   if (template === 'content-calendar') {
     seed['brand-voice.md'] = '# Brand voice\n\nDescribe the tone and style here.\n';
     seed['audience.md'] = '# Audience\n\nDescribe who this content is for.\n';

@@ -12,6 +12,7 @@ export const COMMONS_TOOLS = [
   'list_proposals',
   'create_proposal',
   'write_proposal_file',
+  'generate_image',
   'submit_proposal',
   'diff_proposal',
 ].map((t) => `mcp__${SERVER}__${t}`);
@@ -34,7 +35,7 @@ function systemPrompt(workspace: string): string {
     `Workflow, in order:`,
     `1. Call overview, then read_state / read_file, to understand the current content and any material under reference/.`,
     `2. create_proposal with a short, human-readable title.`,
-    `3. write_proposal_file for each file you add or change (Markdown).`,
+    `3. write_proposal_file for each file you add or change (Markdown). When an image would strengthen the post, call generate_image to create one under assets/ and reference it in the Markdown with ![alt](path).`,
     `4. diff_proposal to check your own changes, then submit_proposal.`,
     ``,
     `Rules: use only the commons tools available to you. Keep deliverables in Markdown. If the request is ambiguous, make reasonable assumptions and state them at the top of the draft. Do not ask the user follow-up questions — produce the best proposal you can in one pass.`,
@@ -65,7 +66,11 @@ export function buildAgentOptions(root: string, workspace: string): Options {
         type: 'stdio',
         command: isWin ? 'cmd' : 'npx',
         args: isWin ? ['/c', 'npx', 'tsx', commonsStdioPath()] : ['tsx', commonsStdioPath()],
-        env: { COMMONS_ROOT: absRoot },
+        env: {
+          COMMONS_ROOT: absRoot,
+          ...(process.env.GEMINI_API_KEY ? { GEMINI_API_KEY: process.env.GEMINI_API_KEY } : {}),
+          ...(process.env.COMMONS_IMAGE_MODEL ? { COMMONS_IMAGE_MODEL: process.env.COMMONS_IMAGE_MODEL } : {}),
+        },
       },
     },
   };

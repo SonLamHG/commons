@@ -40,10 +40,10 @@ export function buildTree(nodes: FileNode[]): TreeNode[] {
 }
 
 const LABELS: Record<string, string> = {
-  reference: '📎 Tư liệu nguồn',
-  drafts: '✍️ Bản nháp',
-  published: '✅ Đã xuất bản',
-  assets: '🖼️ Tài nguyên',
+  reference: 'Tư liệu nguồn',
+  drafts: 'Bản nháp',
+  published: 'Đã xuất bản',
+  assets: 'Tài nguyên',
 };
 
 /** Friendly label for a directory name; raw name if not a standard folder. */

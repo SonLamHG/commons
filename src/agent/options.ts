@@ -22,7 +22,9 @@ const DENY_BUILTINS = [
   'KillShell', 'BashOutput', 'ExitPlanMode', 'SlashCommand', 'ToolSearch',
 ];
 
-const MODEL = process.env.COMMONS_AGENT_MODEL ?? 'claude-haiku-4-5-20251001';
+/** Default agent model: a modest, low-cost model. Override with COMMONS_AGENT_MODEL. */
+export const DEFAULT_AGENT_MODEL = 'claude-haiku-4-5-20251001';
+const MODEL = process.env.COMMONS_AGENT_MODEL ?? DEFAULT_AGENT_MODEL;
 
 function systemPrompt(workspace: string): string {
   return [

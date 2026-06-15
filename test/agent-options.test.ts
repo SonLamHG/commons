@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAgentOptions, COMMONS_TOOLS } from '../src/agent/options.js';
+import { buildAgentOptions, COMMONS_TOOLS, DEFAULT_AGENT_MODEL } from '../src/agent/options.js';
 
 describe('buildAgentOptions', () => {
   it('scopes the agent to commons tools only', () => {
@@ -20,7 +20,7 @@ describe('buildAgentOptions', () => {
 
   it('uses a modest model and a workspace-scoped system prompt', () => {
     const o = buildAgentOptions('/data', 'march-campaign');
-    expect(o.model).toMatch(/sonnet/);
+    expect(o.model).toBe(DEFAULT_AGENT_MODEL);
     expect(typeof o.systemPrompt).toBe('string');
     expect(o.systemPrompt as string).toContain('march-campaign');
     expect(o.systemPrompt as string).toContain('proposal');

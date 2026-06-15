@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { api, type FileNode } from '../api';
-import { renderMarkdown } from '../markdown';
+import { api, type FileNode, isImage } from '../api';
+import { renderMarkdown, resolvePostImage } from '../markdown';
 import { buildTree } from '../tree';
 import { FileTree } from './FileTree';
 
@@ -32,6 +32,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   useEffect(() => {
     setPublishMsg(null);
     if (!selected) { setContent(null); return; }
+    if (isImage(selected)) { setContent(''); return; }
     let live = true;
     setContent(null);
     api.file(ws, selected).then((r) => { if (live) setContent(r.content); })
@@ -149,14 +150,16 @@ export function FileBrowser({ ws }: { ws: string }) {
               {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#c43d23' : '#2f6b46' }}>{publishMsg}</p>}
               {content === null && <p className="empty">Loading…</p>}
               {content !== null && (
-                isMd
-                  ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content) }} />
-                  : (
-                    <div className="diff-file">
-                      <h4>{selected}</h4>
-                      <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
-                    </div>
-                  )
+                isImage(selected)
+                  ? <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                  : isMd
+                    ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
+                    : (
+                      <div className="diff-file">
+                        <h4>{selected}</h4>
+                        <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
+                      </div>
+                    )
               )}
             </>
           )}

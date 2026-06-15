@@ -802,3 +802,6 @@ body::before {
   .tree-children { animation: none; }
   .tree-folder__chevron, .tree-folder--top::before { transition: none; }
 }
+
+.post-image { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; }
+.doc img { max-width: 100%; height: auto; border-radius: 8px; }

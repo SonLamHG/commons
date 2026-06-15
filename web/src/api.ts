@@ -62,4 +62,11 @@ export const api = {
     fetch(`/api/workspaces/${ws}/published`).then(j),
   publish: (ws: string, path: string): Promise<{ published: boolean; publishedAt: string; title: string }> =>
     fetch(`/api/workspaces/${ws}/publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ path }) }).then(j),
+  assetUrl: (ws: string, path: string): string =>
+    `/api/workspaces/${ws}/asset?path=${encodeURIComponent(path)}`,
+  proposalAssetUrl: (ws: string, id: string, path: string): string =>
+    `/api/workspaces/${ws}/proposals/${id}/asset?path=${encodeURIComponent(path)}`,
 };
+
+export const isImage = (path: string): boolean =>
+  /\.(png|jpe?g|webp|gif)$/i.test(path);

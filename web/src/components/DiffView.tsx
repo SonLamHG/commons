@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { api, type Proposal, type FileDiff, type MergeResult } from '../api';
-import { renderMarkdown } from '../markdown';
+import { api, type Proposal, type FileDiff, type MergeResult, isImage } from '../api';
+import { renderMarkdown, resolvePostImage } from '../markdown';
 
 function DiffBody({ diff }: { diff: string }) {
   return (
@@ -38,6 +38,7 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
       const rendered = await Promise.all(
         d.map(async (f) => {
           if (f.status === 'deleted') return { path: f.path, status: f.status, content: '' };
+          if (isImage(f.path)) return { path: f.path, status: f.status, content: '' };
           try { const r = await api.proposalFile(ws, proposal.id, f.path); return { path: f.path, status: f.status, content: r.content }; }
           catch { return { path: f.path, status: f.status, content: '' }; }
         }),
@@ -103,9 +104,11 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
           </div>
           {d.status === 'deleted'
             ? <p className="empty">Tài liệu này sẽ bị gỡ bỏ.</p>
-            : d.path.endsWith('.md')
-              ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content) }} />
-              : <pre className="diff-body" style={{ padding: '12px' }}>{d.content}</pre>}
+            : isImage(d.path)
+              ? <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
+              : d.path.endsWith('.md')
+                ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
+                : <pre className="diff-body" style={{ padding: '12px' }}>{d.content}</pre>}
         </div>
       ))}
 

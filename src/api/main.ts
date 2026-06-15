@@ -6,6 +6,9 @@ import { WorkspaceSerializer } from '../util/serializer.js';
 import { buildApi } from './server.js';
 import { createPublishStore } from '../publish/store.js';
 import { createClaudeRunner } from '../agent/runner.js';
+import { loadEnv } from '../util/env.js';
+
+loadEnv(); // pick up GEMINI_API_KEY etc. from a project-root .env before anything reads process.env
 
 const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
 const port = Number(process.env.PORT ?? 8787);

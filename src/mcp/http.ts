@@ -3,6 +3,9 @@ import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/
 import { join } from 'node:path';
 import { createEngine } from '../engine/index.js';
 import { buildServer } from './server.js';
+import { loadEnv } from '../util/env.js';
+
+loadEnv();
 
 const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
 const port = Number(process.env.MCP_HTTP_PORT ?? 8765);

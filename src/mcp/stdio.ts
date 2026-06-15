@@ -2,6 +2,9 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { join } from 'node:path';
 import { createEngine } from '../engine/index.js';
 import { buildServer } from './server.js';
+import { loadEnv } from '../util/env.js';
+
+loadEnv(); // so GEMINI_API_KEY is available to generate_image when run directly via `npm run mcp`
 
 const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
 const server = buildServer(createEngine(root));

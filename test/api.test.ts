@@ -131,6 +131,21 @@ describe('API', () => {
     expect(json(state).some((n: any) => n.path === 'README.md')).toBe(true);
   });
 
+  it('seeds the four standard role folders', async () => {
+    const res = await app.inject({
+      method: 'POST', url: '/api/workspaces',
+      payload: { id: 'folders-ws', template: 'blank' },
+    });
+    expect(res.statusCode).toBe(201);
+
+    const state = await app.inject({ method: 'GET', url: '/api/workspaces/folders-ws/state' });
+    const paths = (state.json() as { path: string }[]).map((n) => n.path);
+    expect(paths).toContain('reference/README.md');
+    expect(paths).toContain('drafts/README.md');
+    expect(paths).toContain('published/README.md');
+    expect(paths).toContain('assets/README.md');
+  });
+
   it('POST content-calendar template seeds starter files', async () => {
     const res = await app.inject({ method: 'POST', url: '/api/workspaces', payload: { id: 'cal', template: 'content-calendar' } });
     expect(res.statusCode).toBe(201);

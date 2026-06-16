@@ -8,3 +8,10 @@ export class WorkspaceSerializer {
     return next;
   }
 }
+
+/** Build a serializer key scoped to a tenant so locks never collide across
+ *  tenants: tenant A's workspace "ws1" must not block tenant B's "ws1".
+ *  Tenant ids are validated to [A-Za-z0-9_-]+, so ':' is an unambiguous separator. */
+export function scopeKey(tenantId: string, workspace: string): string {
+  return `${tenantId}:${workspace}`;
+}

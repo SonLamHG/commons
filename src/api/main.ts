@@ -1,20 +1,42 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { existsSync } from 'node:fs';
 import fastifyStatic from '@fastify/static';
-import { createEngine } from '../engine/index.js';
+import { createEngineRegistry } from '../engine/registry.js';
 import { WorkspaceSerializer } from '../util/serializer.js';
 import { buildApi } from './server.js';
-import { createPublishStore } from '../publish/store.js';
+import { createDb } from '../db/index.js';
 import { createClaudeRunner } from '../agent/runner.js';
+import { mailerFromEnv } from '../auth/mailer.js';
 import { loadEnv } from '../util/env.js';
 
-loadEnv(); // pick up GEMINI_API_KEY etc. from a project-root .env before anything reads process.env
+loadEnv(); // pick up secrets/env from a project-root .env before reading process.env
 
-const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
+const root = resolve(process.env.COMMONS_ROOT ?? join(process.cwd(), 'data'));
 const port = Number(process.env.PORT ?? 8787);
+const appUrl = process.env.COMMONS_APP_URL ?? `http://localhost:${port}`;
 
-const publishStore = createPublishStore(root);
-const app = buildApi(createEngine(root), new WorkspaceSerializer(), publishStore, createClaudeRunner(root));
+const authSecret = process.env.COMMONS_AUTH_SECRET;
+if (!authSecret) {
+  process.stderr.write('COMMONS_AUTH_SECRET is required (set it in .env) — refusing to start.\n');
+  process.exit(1);
+}
+
+const db = createDb(join(root, 'commons.db'));
+
+// Beta allowlist: seed invited emails from COMMONS_INVITES (comma-separated).
+for (const email of (process.env.COMMONS_INVITES ?? '').split(',').map((s) => s.trim()).filter(Boolean)) {
+  db.addInvite(email);
+}
+
+const app = buildApi({
+  registry: createEngineRegistry(root),
+  serializer: new WorkspaceSerializer(),
+  db,
+  authSecret,
+  appUrl,
+  mailer: mailerFromEnv(),
+  agentRunner: createClaudeRunner(),
+});
 
 const dist = join(process.cwd(), 'web', 'dist');
 if (existsSync(dist)) {
@@ -37,9 +59,7 @@ app.listen({ port, host: '0.0.0.0' })
     process.exit(1);
   });
 
-// Graceful shutdown: release the listening socket on every signal so the
-// process exits cleanly instead of lingering and holding the port (which is
-// what turns a Ctrl-C / tsx-watch restart into an orphaned 8787 listener).
+// Graceful shutdown: release the listening socket on every signal.
 let closing = false;
 async function shutdown(signal: string): Promise<void> {
   if (closing) return;

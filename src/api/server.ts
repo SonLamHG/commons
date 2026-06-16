@@ -1,10 +1,13 @@
-import Fastify, { type FastifyInstance } from 'fastify';
+import Fastify, { type FastifyInstance, type FastifyRequest } from 'fastify';
 import { Readable } from 'node:stream';
 import { posix } from 'node:path';
-import type { Engine } from '../engine/types.js';
-import type { WorkspaceSerializer } from '../util/serializer.js';
-import type { PublishStore } from '../publish/store.js';
+import type { EngineRegistry } from '../engine/registry.js';
+import { WorkspaceSerializer, scopeKey } from '../util/serializer.js';
+import { createPublishStore, type PublishStore } from '../publish/store.js';
 import type { AgentRunner } from '../agent/types.js';
+import type { Db } from '../db/types.js';
+import type { Mailer } from '../auth/mailer.js';
+import { registerAuthRoutes, makeRequireAuth } from '../auth/routes.js';
 import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
 import { extractText, referencePath } from '../upload/extract.js';
@@ -58,22 +61,51 @@ function buildSeed(template: string, id: string): Record<string, string> {
   return seed;
 }
 
-export function buildApi(
-  engine: Engine,
-  serializer: WorkspaceSerializer,
-  publishStore: PublishStore,
-  agentRunner?: AgentRunner,
-): FastifyInstance {
-  // forceCloseConnections: on shutdown, terminate in-flight sockets (e.g. the
-  // long-lived agent SSE stream) so app.close() resolves promptly instead of
-  // hanging — which is what would otherwise leave the port bound on restart.
+type Authed = FastifyRequest & { auth: { userId: string; tenantId: string } };
+
+export interface ApiDeps {
+  registry: EngineRegistry;
+  serializer: WorkspaceSerializer;
+  db: Db;
+  authSecret: string;
+  appUrl: string;
+  mailer: Mailer;
+  agentRunner?: AgentRunner;
+}
+
+export function buildApi(deps: ApiDeps): FastifyInstance {
+  const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner } = deps;
   const app = Fastify({ forceCloseConnections: true });
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
-  app.get('/api/workspaces', async () => engine.listWorkspaces());
+  // --- auth: mount routes, then gate everything else under /api ---
+  registerAuthRoutes(app, { db, secret: authSecret, appUrl, mailer });
+  const requireAuth = makeRequireAuth({ db, secret: authSecret, appUrl, mailer });
+  app.addHook('preHandler', async (req, reply) => {
+    if (!req.url.startsWith('/api/')) return;        // static / SPA
+    if (req.url.startsWith('/api/auth/')) return;     // auth endpoints
+    if (req.url === '/api/health') return;            // health probe
+    return requireAuth(req, reply);
+  });
+
+  app.get('/api/health', async () => ({ ok: true }));
+
+  // --- per-tenant resolution helpers (auth has set req.auth) ---
+  const tenantOf = (req: FastifyRequest) => (req as Authed).auth.tenantId;
+  const engineOf = (req: FastifyRequest) => registry.forTenant(tenantOf(req));
+  const publishStores = new Map<string, PublishStore>();
+  const publishOf = (req: FastifyRequest): PublishStore => {
+    const t = tenantOf(req);
+    let s = publishStores.get(t);
+    if (!s) { s = createPublishStore(registry.rootFor(t)); publishStores.set(t, s); }
+    return s;
+  };
+  const lock = <T>(req: FastifyRequest, ws: string, fn: () => Promise<T>) =>
+    serializer.run(scopeKey(tenantOf(req), ws), fn);
+
+  app.get('/api/workspaces', async (req) => engineOf(req).listWorkspaces());
 
   // Upload human-provided source material (.md/.txt/.pdf/.docx) into reference/.
-  // Extracted to text and written straight to main (no review gate).
   app.post('/api/workspaces/:ws/files', async (req, reply) => {
     const { ws } = req.params as { ws: string };
     const data = await req.file();
@@ -85,7 +117,7 @@ export function buildApi(
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
     }
     const path = referencePath(data.filename);
-    await serializer.run(ws, () => engine.addFile(ws, path, text));
+    await lock(req, ws, () => engineOf(req).addFile(ws, path, text));
     return reply.code(201).send({ path });
   });
 
@@ -93,21 +125,19 @@ export function buildApi(
     const { id, template } = (req.body ?? {}) as { id?: string; template?: string };
     if (!id) return reply.code(400).send({ error: 'id required' });
     try {
-      await serializer.run(id, () => engine.createWorkspace({ id, seed: buildSeed(template ?? 'blank', id) }));
+      await lock(req, id, () => engineOf(req).createWorkspace({ id, seed: buildSeed(template ?? 'blank', id) }));
       return reply.code(201).send({ id });
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
     }
   });
 
-  // Human-only: delete a workspace and everything under it. Agents have no
-  // equivalent MCP tool — destruction stays on the human side of the gate.
   app.delete('/api/workspaces/:ws', async (req, reply) => {
     const { ws } = req.params as { ws: string };
-    const workspaces = await engine.listWorkspaces();
+    const workspaces = await engineOf(req).listWorkspaces();
     if (!workspaces.includes(ws)) return reply.code(404).send({ error: `workspace '${ws}' not found` });
     try {
-      await serializer.run(ws, () => engine.deleteWorkspace(ws));
+      await lock(req, ws, () => engineOf(req).deleteWorkspace(ws));
       return reply.code(200).send({ deleted: ws });
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
@@ -116,21 +146,20 @@ export function buildApi(
 
   app.get('/api/workspaces/:ws/proposals', async (req) => {
     const { ws } = req.params as { ws: string };
-    return engine.listProposals(ws);
+    return engineOf(req).listProposals(ws);
   });
 
   app.get('/api/workspaces/:ws/proposals/:id/diff', async (req) => {
     const { ws, id } = req.params as { ws: string; id: string };
-    return engine.diffProposal(ws, id);
+    return engineOf(req).diffProposal(ws, id);
   });
 
-  // The proposed (final) version of a changed file — used by the reading view.
   app.get('/api/workspaces/:ws/proposals/:id/file', async (req, reply) => {
     const { ws, id } = req.params as { ws: string; id: string };
     const { path } = req.query as { path?: string };
     if (!path) return reply.code(400).send({ error: 'path query param required' });
     try {
-      return { path, content: await engine.readProposalFile(ws, id, path) };
+      return { path, content: await engineOf(req).readProposalFile(ws, id, path) };
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
     }
@@ -138,7 +167,7 @@ export function buildApi(
 
   app.get('/api/workspaces/:ws/state', async (req) => {
     const { ws } = req.params as { ws: string };
-    return engine.readState(ws);
+    return engineOf(req).readState(ws);
   });
 
   app.get('/api/workspaces/:ws/asset', async (req, reply) => {
@@ -146,7 +175,7 @@ export function buildApi(
     const { path } = req.query as { path?: string };
     if (!path) return reply.code(400).send({ error: 'path query param required' });
     try {
-      const bytes = await engine.readFileBytes(ws, path);
+      const bytes = await engineOf(req).readFileBytes(ws, path);
       return reply.type(mimeForPath(path)).send(bytes);
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
@@ -158,7 +187,7 @@ export function buildApi(
     const { path } = req.query as { path?: string };
     if (!path) return reply.code(400).send({ error: 'path query param required' });
     try {
-      const bytes = await engine.readProposalFileBytes(ws, id, path);
+      const bytes = await engineOf(req).readProposalFileBytes(ws, id, path);
       return reply.type(mimeForPath(path)).send(bytes);
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
@@ -170,7 +199,7 @@ export function buildApi(
     const { path } = req.query as { path?: string };
     if (!path) return reply.code(400).send({ error: 'path query param required' });
     try {
-      await serializer.run(ws, () => engine.deleteFile(ws, path));
+      await lock(req, ws, () => engineOf(req).deleteFile(ws, path));
       return { deleted: true, path };
     } catch (e) {
       return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) });
@@ -181,46 +210,46 @@ export function buildApi(
     const { ws } = req.params as { ws: string };
     const { path } = req.query as { path?: string };
     if (!path) throw new Error('path query param required');
-    return { path, content: await engine.readFile(ws, path) };
+    return { path, content: await engineOf(req).readFile(ws, path) };
   });
 
   app.post('/api/workspaces/:ws/proposals/:id/approve', async (req) => {
     const { ws, id } = req.params as { ws: string; id: string };
-    return serializer.run(ws, () => engine.mergeProposal(ws, id));
+    return lock(req, ws, () => engineOf(req).mergeProposal(ws, id));
   });
 
   app.post('/api/workspaces/:ws/proposals/:id/reject', async (req, reply) => {
     const { ws, id } = req.params as { ws: string; id: string };
-    await serializer.run(ws, () => engine.discardProposal(ws, id));
+    await lock(req, ws, () => engineOf(req).discardProposal(ws, id));
     return reply.send({ discarded: true });
   });
 
   app.get('/api/workspaces/:ws/config', async (req) => {
     const { ws } = req.params as { ws: string };
-    return publishStore.getConfig(ws);
+    return publishOf(req).getConfig(ws);
   });
 
   app.put('/api/workspaces/:ws/config', async (req) => {
     const { ws } = req.params as { ws: string };
     const { webhookUrl } = (req.body ?? {}) as { webhookUrl?: string };
-    await serializer.run(ws, async () => publishStore.setConfig(ws, { webhookUrl }));
+    await lock(req, ws, async () => publishOf(req).setConfig(ws, { webhookUrl }));
     return { ok: true };
   });
 
   app.get('/api/workspaces/:ws/published', async (req) => {
     const { ws } = req.params as { ws: string };
-    return publishStore.listPublished(ws);
+    return publishOf(req).listPublished(ws);
   });
 
   app.post('/api/workspaces/:ws/publish', async (req, reply) => {
     const { ws } = req.params as { ws: string };
     const { path } = (req.body ?? {}) as { path?: string };
     if (!path) return reply.code(400).send({ error: 'path required' });
-    const { webhookUrl } = publishStore.getConfig(ws);
+    const { webhookUrl } = publishOf(req).getConfig(ws);
     if (!webhookUrl) return reply.code(400).send({ error: 'no webhook configured for this workspace' });
 
     let content: string;
-    try { content = await engine.readFile(ws, path); }
+    try { content = await engineOf(req).readFile(ws, path); }
     catch (e) { return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) }); }
 
     const title = deriveTitle(content, path);
@@ -230,7 +259,7 @@ export function buildApi(
     const imgPath = firstImagePath(content, path);
     if (imgPath) {
       try {
-        const bytes = await engine.readFileBytes(ws, imgPath);
+        const bytes = await engineOf(req).readFileBytes(ws, imgPath);
         image = {
           filename: imgPath.split('/').pop() ?? 'image',
           mime: mimeForPath(imgPath),
@@ -250,14 +279,14 @@ export function buildApi(
       return reply.code(502).send({ error: `webhook failed: ${e instanceof Error ? e.message : String(e)}` });
     }
 
-    const rec = await serializer.run(ws, async () => publishStore.markPublished(ws, path));
+    const rec = await lock(req, ws, async () => publishOf(req).markPublished(ws, path));
     return { published: true, publishedAt: rec.publishedAt, title };
   });
 
   app.post('/api/workspaces/:ws/agent', async (req, reply) => {
     const { ws } = req.params as { ws: string };
     if (!/^[A-Za-z0-9_-]+$/.test(ws)) return reply.code(400).send({ error: 'invalid workspace id' });
-    const workspaces = await engine.listWorkspaces();
+    const workspaces = await engineOf(req).listWorkspaces();
     if (!workspaces.includes(ws)) return reply.code(404).send({ error: `workspace '${ws}' not found` });
     const { prompt } = (req.body ?? {}) as { prompt?: string };
     if (!prompt || !prompt.trim()) return reply.code(400).send({ error: 'prompt required' });
@@ -267,7 +296,7 @@ export function buildApi(
     const stream = new Readable({ read() {} });
     const write = (e: unknown) => stream.push(JSON.stringify(e) + '\n');
     agentRunner
-      .run(ws, prompt, write)
+      .run(registry.rootFor(tenantOf(req)), ws, prompt, write)
       .catch((e) => write({ type: 'error', message: e instanceof Error ? e.message : String(e) }))
       .finally(() => stream.push(null));
     return reply.send(stream);

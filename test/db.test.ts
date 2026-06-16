@@ -36,3 +36,20 @@ describe('db: tenants & users', () => {
     expect(() => db.createUser('a@x.com', 'ghost')).toThrow();
   });
 });
+
+describe('db: invites (allowlist)', () => {
+  it('adds an invite and checks membership case-insensitively', () => {
+    db.addInvite('Bob@Example.com');
+    expect(db.isInvited('bob@example.com')).toBe(true);
+    expect(db.isInvited('nobody@example.com')).toBe(false);
+  });
+
+  it('is idempotent on re-invite and tracks acceptance', () => {
+    const first = db.addInvite('c@x.com');
+    expect(first.accepted_at).toBeNull();
+    db.addInvite('c@x.com'); // no throw, idempotent
+    db.markInviteAccepted('C@X.com');
+    const again = db.addInvite('c@x.com');
+    expect(again.accepted_at).not.toBeNull();
+  });
+});

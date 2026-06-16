@@ -44,6 +44,21 @@ export function createDb(location: string): Db {
         | { id: string; email: string; tenant_id: string; created_at: string } | undefined;
     },
 
+    addInvite(email) {
+      const e = normEmail(email);
+      db.prepare('INSERT OR IGNORE INTO invites (email, invited_at) VALUES (?, ?)')
+        .run(e, new Date().toISOString());
+      return db.prepare('SELECT email, invited_at, accepted_at FROM invites WHERE email = ?')
+        .get(e) as { email: string; invited_at: string; accepted_at: string | null };
+    },
+    isInvited(email) {
+      return db.prepare('SELECT 1 FROM invites WHERE email = ?').get(normEmail(email)) !== undefined;
+    },
+    markInviteAccepted(email) {
+      db.prepare('UPDATE invites SET accepted_at = ? WHERE email = ?')
+        .run(new Date().toISOString(), normEmail(email));
+    },
+
     close() {
       db.close();
     },

@@ -3,9 +3,27 @@ export interface FileDiff { path: string; status: 'added' | 'modified' | 'delete
 export type MergeResult = { merged: true } | { merged: false; conflicts: string[] };
 export interface FileNode { path: string; type: 'file' | 'dir'; }
 
-const j = async (r: Response) => { if (!r.ok) throw new Error(await r.text()); return r.json(); };
+export class UnauthorizedError extends Error {
+  constructor() { super('unauthorized'); this.name = 'UnauthorizedError'; }
+}
+
+const j = async (r: Response) => {
+  if (r.status === 401) throw new UnauthorizedError();
+  if (!r.ok) throw new Error(await r.text());
+  return r.json();
+};
 
 export const api = {
+  auth: {
+    me: (): Promise<{ userId: string; tenantId: string; email: string }> =>
+      fetch('/api/auth/me').then(j),
+    request: (email: string): Promise<{ ok: boolean }> =>
+      fetch('/api/auth/request', {
+        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }),
+      }).then(j),
+    logout: (): Promise<{ ok: boolean }> =>
+      fetch('/api/auth/logout', { method: 'POST' }).then(j),
+  },
   workspaces: (): Promise<string[]> => fetch('/api/workspaces').then(j),
   proposals: (ws: string): Promise<Proposal[]> => fetch(`/api/workspaces/${ws}/proposals`).then(j),
   diff: (ws: string, id: string): Promise<FileDiff[]> => fetch(`/api/workspaces/${ws}/proposals/${id}/diff`).then(j),

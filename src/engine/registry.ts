@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { createEngine } from './index.js';
 import type { Engine } from './types.js';
 
@@ -14,6 +14,7 @@ export interface EngineRegistry {
 /** Per-tenant engine factory. Each tenant gets an isolated subtree at
  *  <rootDir>/tenants/<tenantId>; the underlying engine is reused unchanged. */
 export function createEngineRegistry(rootDir: string): EngineRegistry {
+  rootDir = resolve(rootDir);
   const cache = new Map<string, Engine>();
   const rootFor = (tenantId: string): string => {
     if (!TENANT_ID.test(tenantId)) throw new Error(`invalid tenant id: ${tenantId}`);

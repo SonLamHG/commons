@@ -11,5 +11,5 @@ export interface AgentResult {
 }
 
 export interface AgentRunner {
-  run(workspace: string, prompt: string, onEvent: (e: AgentEvent) => void): Promise<AgentResult>;
+  run(tenantRoot: string, workspace: string, prompt: string, onEvent: (e: AgentEvent) => void): Promise<AgentResult>;
 }

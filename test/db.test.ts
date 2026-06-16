@@ -53,3 +53,35 @@ describe('db: invites (allowlist)', () => {
     expect(again.accepted_at).not.toBeNull();
   });
 });
+
+describe('db: runs & usage', () => {
+  const seedUser = () => { db.createTenant('acme'); return db.createUser('a@x.com', 'acme').id; };
+
+  it('creates a running run and finishes it', () => {
+    const userId = seedUser();
+    const run = db.createRun({ userId, tenantId: 'acme', workspace: 'ws1', model: 'claude-haiku-4-5' });
+    expect(run.status).toBe('running');
+    expect(run.cost_usd).toBe(0);
+    db.finishRun(run.id, { status: 'success', costUsd: 0.012, numTurns: 5 });
+    const got = db.getRun(run.id);
+    expect(got?.status).toBe('success');
+    expect(got?.cost_usd).toBeCloseTo(0.012);
+    expect(got?.num_turns).toBe(5);
+    expect(got?.finished_at).not.toBeNull();
+  });
+
+  it('summarises usage for a user since a timestamp', () => {
+    const userId = seedUser();
+    const r1 = db.createRun({ userId, tenantId: 'acme', workspace: 'ws1' });
+    const r2 = db.createRun({ userId, tenantId: 'acme', workspace: 'ws1' });
+    db.finishRun(r1.id, { status: 'success', costUsd: 0.01, numTurns: 2 });
+    db.finishRun(r2.id, { status: 'success', costUsd: 0.02, numTurns: 3 });
+
+    const all = db.usageSince(userId, '1970-01-01T00:00:00.000Z');
+    expect(all.runs).toBe(2);
+    expect(all.costUsd).toBeCloseTo(0.03);
+
+    const future = db.usageSince(userId, '2999-01-01T00:00:00.000Z');
+    expect(future).toEqual({ runs: 0, costUsd: 0 });
+  });
+});

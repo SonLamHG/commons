@@ -59,6 +59,40 @@ export function createDb(location: string): Db {
         .run(new Date().toISOString(), normEmail(email));
     },
 
+    createRun({ userId, tenantId, workspace, model }) {
+      const id = generateId('run');
+      const created_at = new Date().toISOString();
+      db.prepare(
+        'INSERT INTO runs (id, user_id, tenant_id, workspace, status, cost_usd, num_turns, model, created_at) ' +
+        "VALUES (?, ?, ?, ?, 'running', 0, 0, ?, ?)",
+      ).run(id, userId, tenantId, workspace, model ?? null, created_at);
+      return {
+        id, user_id: userId, tenant_id: tenantId, workspace,
+        status: 'running', cost_usd: 0, num_turns: 0, model: model ?? null,
+        created_at, finished_at: null,
+      };
+    },
+    finishRun(id, { status, costUsd, numTurns }) {
+      db.prepare('UPDATE runs SET status = ?, cost_usd = ?, num_turns = ?, finished_at = ? WHERE id = ?')
+        .run(status, costUsd, numTurns, new Date().toISOString(), id);
+    },
+    getRun(id) {
+      return db.prepare(
+        'SELECT id, user_id, tenant_id, workspace, status, cost_usd, num_turns, model, created_at, finished_at ' +
+        'FROM runs WHERE id = ?',
+      ).get(id) as {
+        id: string; user_id: string; tenant_id: string; workspace: string;
+        status: string; cost_usd: number; num_turns: number; model: string | null;
+        created_at: string; finished_at: string | null;
+      } | undefined;
+    },
+    usageSince(userId, sinceIso) {
+      const row = db.prepare(
+        'SELECT COUNT(*) AS runs, COALESCE(SUM(cost_usd), 0) AS costUsd FROM runs WHERE user_id = ? AND created_at >= ?',
+      ).get(userId, sinceIso) as { runs: number; costUsd: number };
+      return { runs: row.runs, costUsd: row.costUsd };
+    },
+
     close() {
       db.close();
     },

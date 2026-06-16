@@ -85,3 +85,24 @@ describe('db: runs & usage', () => {
     expect(future).toEqual({ runs: 0, costUsd: 0 });
   });
 });
+
+describe('db: feedback & events', () => {
+  it('stores and lists feedback', () => {
+    const f1 = db.addFeedback({ message: 'first', userId: null, tenantId: null });
+    const f2 = db.addFeedback({ message: 'second', context: 'proposals tab' });
+    const list = db.listFeedback();
+    expect(list.length).toBe(2);
+    expect(list.map((f) => f.message)).toContain('first');
+    expect(list.find((f) => f.id === f2.id)?.context).toBe('proposals tab');
+    expect(list.find((f) => f.id === f1.id)?.context).toBeNull();
+  });
+
+  it('records events and counts by name', () => {
+    db.recordEvent({ name: 'workspace_created', tenantId: 'acme' });
+    db.recordEvent({ name: 'proposal_merged', userId: 'u1', props: { ws: 'ws1' } });
+    db.recordEvent({ name: 'proposal_merged' });
+    expect(db.countEvents('proposal_merged')).toBe(2);
+    expect(db.countEvents('workspace_created')).toBe(1);
+    expect(db.countEvents('never')).toBe(0);
+  });
+});

@@ -93,6 +93,31 @@ export function createDb(location: string): Db {
       return { runs: row.runs, costUsd: row.costUsd };
     },
 
+    addFeedback({ userId, tenantId, message, context }) {
+      const id = generateId('fb');
+      const created_at = new Date().toISOString();
+      db.prepare('INSERT INTO feedback (id, user_id, tenant_id, message, context, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, userId ?? null, tenantId ?? null, message, context ?? null, created_at);
+      return { id, user_id: userId ?? null, tenant_id: tenantId ?? null, message, context: context ?? null, created_at };
+    },
+    listFeedback() {
+      return db.prepare(
+        'SELECT id, user_id, tenant_id, message, context, created_at FROM feedback ORDER BY created_at DESC',
+      ).all() as {
+        id: string; user_id: string | null; tenant_id: string | null;
+        message: string; context: string | null; created_at: string;
+      }[];
+    },
+    recordEvent({ name, userId, tenantId, props }) {
+      const id = generateId('evt');
+      db.prepare('INSERT INTO events (id, user_id, tenant_id, name, props, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+        .run(id, userId ?? null, tenantId ?? null, name, props === undefined ? null : JSON.stringify(props), new Date().toISOString());
+    },
+    countEvents(name) {
+      const row = db.prepare('SELECT COUNT(*) AS c FROM events WHERE name = ?').get(name) as { c: number };
+      return row.c;
+    },
+
     close() {
       db.close();
     },

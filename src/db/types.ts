@@ -7,6 +7,10 @@ export interface Run {
   created_at: string; finished_at: string | null;
 }
 export interface UsageSummary { runs: number; costUsd: number; }
+export interface Feedback {
+  id: string; user_id: string | null; tenant_id: string | null;
+  message: string; context: string | null; created_at: string;
+}
 
 export interface Db {
   createTenant(id: string): Tenant;
@@ -24,6 +28,11 @@ export interface Db {
   finishRun(id: string, result: { status: string; costUsd: number; numTurns: number }): void;
   getRun(id: string): Run | undefined;
   usageSince(userId: string, sinceIso: string): UsageSummary;
+
+  addFeedback(input: { userId?: string | null; tenantId?: string | null; message: string; context?: string | null }): Feedback;
+  listFeedback(): Feedback[];
+  recordEvent(input: { name: string; userId?: string | null; tenantId?: string | null; props?: unknown }): void;
+  countEvents(name: string): number;
 
   close(): void;
 }

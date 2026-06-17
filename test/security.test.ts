@@ -52,12 +52,13 @@ describe('cors', () => {
     await app.close();
   });
 
-  it('does not intercept OPTIONS without a matching origin', async () => {
+  it('absorbs OPTIONS without a matching origin as 204 (no ACAO header)', async () => {
     const app = build();
     const res = await app.inject({ method: 'OPTIONS', url: '/x' }); // no Origin header
+    // All OPTIONS absorbed as 204 so browsers get a clean preflight denial, not a 404.
+    // Without ACAO, the browser treats it as a CORS denial.
+    expect(res.statusCode).toBe(204);
     expect(res.headers['access-control-allow-origin']).toBeUndefined();
-    // should fall through — Fastify returns 200 (GET handler exists) or 404; not 204
-    expect(res.statusCode).not.toBe(204);
     await app.close();
   });
 });

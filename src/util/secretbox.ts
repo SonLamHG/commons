@@ -1,7 +1,8 @@
-import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from 'node:crypto';
 
 const PREFIX = 'enc:v1:';
-const keyFrom = (secret: string): Buffer => createHash('sha256').update(secret).digest(); // 32 bytes
+const keyFrom = (secret: string): Buffer =>
+  Buffer.from(hkdfSync('sha256', secret, 'commons-secretbox-v1', '', 32));
 
 /** Encrypt a short string with AES-256-GCM. Output: `enc:v1:` + base64(iv|tag|ciphertext). */
 export function encryptSecret(plain: string, secret: string): string {

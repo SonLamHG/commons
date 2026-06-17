@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, readFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createPublishStore } from '../src/publish/store.js';
@@ -26,8 +26,12 @@ describe('publish store at-rest encryption', () => {
     expect(store.getConfig('ws1').webhookUrl).toBeUndefined();
   });
 
-  it('reads back a value written with the same store', () => {
-    createPublishStore(root, 's').setConfig('ws2', { webhookUrl: 'https://plain.example/y' });
-    expect(createPublishStore(root, 's').getConfig('ws2').webhookUrl).toBe('https://plain.example/y');
+  it('reads legacy plaintext webhookUrl written before encryption was added', () => {
+    const metaDir = join(root, 'meta', 'ws-legacy');
+    mkdirSync(metaDir, { recursive: true });
+    writeFileSync(join(metaDir, 'publish.json'),
+      JSON.stringify({ webhookUrl: 'https://plain.example/y', published: {} }));
+    expect(createPublishStore(root, 'any-secret').getConfig('ws-legacy').webhookUrl)
+      .toBe('https://plain.example/y');
   });
 });

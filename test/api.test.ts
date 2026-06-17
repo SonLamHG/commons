@@ -58,11 +58,12 @@ const inj = (opts: Parameters<typeof app.inject>[0] & { headers?: Record<string,
   app.inject({ ...opts, headers: { cookie, ...(opts.headers ?? {}) } });
 
 describe('security', () => {
-  it('serves security headers and CORS on the real API', async () => {
+  it('serves security headers and rate-limit on the real API', async () => {
     const res = await inj({ method: 'GET', url: '/api/health' });
     expect(res.statusCode).toBe(200);
     expect(res.headers['x-content-type-options']).toBe('nosniff');
     expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.statusCode).not.toBe(429); // rate-limit hook wired but not tripped
   });
 });
 

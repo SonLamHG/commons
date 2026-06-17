@@ -34,12 +34,13 @@ const DEFAULTS: RateLimitOpts = {
 export function registerRateLimit(app: FastifyInstance, opts: RateLimitOpts = DEFAULTS): void {
   const rl = createRateLimiter();
   app.addHook('onRequest', async (req, reply) => {
+    const now = Date.now();
     const ip = req.ip || 'unknown';
     const isAuth = req.url.startsWith('/api/auth/');
     const limit = isAuth ? opts.auth : opts.global;
     const key = `${isAuth ? 'auth' : 'global'}:${ip}`;
-    if (!rl.check(key, limit)) {
-      reply.header('retry-after', String(rl.retryAfter(key)));
+    if (!rl.check(key, limit, now)) {
+      reply.header('retry-after', String(rl.retryAfter(key, now)));
       return reply.code(429).send({ error: 'rate limit exceeded — slow down' });
     }
   });

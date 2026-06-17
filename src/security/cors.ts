@@ -11,9 +11,9 @@ export function registerCors(app: FastifyInstance, allowedOrigin: string): void 
       reply.header('vary', 'Origin');
       reply.header('access-control-allow-methods', 'GET,POST,PUT,DELETE,OPTIONS');
       reply.header('access-control-allow-headers', 'content-type');
-    }
-    if (req.method === 'OPTIONS') {
-      return reply.code(204).send();
+      if (req.method === 'OPTIONS') {
+        return reply.code(204).send();
+      }
     }
   });
 }

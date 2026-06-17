@@ -51,6 +51,15 @@ describe('cors', () => {
     expect(res.headers['access-control-allow-origin']).toBe('https://app.example');
     await app.close();
   });
+
+  it('does not intercept OPTIONS without a matching origin', async () => {
+    const app = build();
+    const res = await app.inject({ method: 'OPTIONS', url: '/x' }); // no Origin header
+    expect(res.headers['access-control-allow-origin']).toBeUndefined();
+    // should fall through — Fastify returns 200 (GET handler exists) or 404; not 204
+    expect(res.statusCode).not.toBe(204);
+    await app.close();
+  });
 });
 
 describe('rate limiter (pure)', () => {

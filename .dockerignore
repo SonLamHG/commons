@@ -1,0 +1,11 @@
+node_modules
+data
+.git
+.gitignore
+web/dist
+.env
+.env.*
+docs
+test
+*.md
+npm-debug.log*

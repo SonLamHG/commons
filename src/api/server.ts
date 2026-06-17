@@ -97,7 +97,7 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
   const publishOf = (req: FastifyRequest): PublishStore => {
     const t = tenantOf(req);
     let s = publishStores.get(t);
-    if (!s) { s = createPublishStore(registry.rootFor(t)); publishStores.set(t, s); }
+    if (!s) { s = createPublishStore(registry.rootFor(t), authSecret); publishStores.set(t, s); }
     return s;
   };
   const lock = <T>(req: FastifyRequest, ws: string, fn: () => Promise<T>) =>

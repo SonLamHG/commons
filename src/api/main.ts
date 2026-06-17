@@ -13,6 +13,7 @@ loadEnv(); // pick up secrets/env from a project-root .env before reading proces
 
 const root = resolve(process.env.COMMONS_ROOT ?? join(process.cwd(), 'data'));
 const port = Number(process.env.PORT ?? 8787);
+const host = process.env.HOST ?? '0.0.0.0';
 const appUrl = process.env.COMMONS_APP_URL ?? `http://localhost:${port}`;
 
 const authSecret = process.env.COMMONS_AUTH_SECRET;
@@ -48,7 +49,7 @@ if (existsSync(dist)) {
   });
 }
 
-app.listen({ port, host: '0.0.0.0' })
+app.listen({ port, host })
   .then(() => process.stdout.write(`commons review UI on http://localhost:${port}\n`))
   .catch((e: NodeJS.ErrnoException) => {
     if (e.code === 'EADDRINUSE') {

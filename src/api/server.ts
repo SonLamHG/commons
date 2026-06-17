@@ -12,6 +12,9 @@ import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
 import { extractText, referencePath } from '../upload/extract.js';
 import { assertPublicHttpsUrl } from '../util/ssrf.js';
+import { registerSecurityHeaders } from '../security/headers.js';
+import { registerCors } from '../security/cors.js';
+import { registerRateLimit } from '../security/rateLimit.js';
 
 function mimeForPath(path: string): string {
   const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
@@ -76,7 +79,10 @@ export interface ApiDeps {
 
 export function buildApi(deps: ApiDeps): FastifyInstance {
   const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner } = deps;
-  const app = Fastify({ forceCloseConnections: true });
+  const app = Fastify({ forceCloseConnections: true, trustProxy: true });
+  registerSecurityHeaders(app);
+  registerCors(app, appUrl);
+  registerRateLimit(app);
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
   // --- auth: mount routes, then gate everything else under /api ---

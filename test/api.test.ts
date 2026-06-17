@@ -57,6 +57,15 @@ const json = (r: { payload: string }) => JSON.parse(r.payload);
 const inj = (opts: Parameters<typeof app.inject>[0] & { headers?: Record<string, string> }) =>
   app.inject({ ...opts, headers: { cookie, ...(opts.headers ?? {}) } });
 
+describe('security', () => {
+  it('serves security headers and CORS on the real API', async () => {
+    const res = await inj({ method: 'GET', url: '/api/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+  });
+});
+
 describe('auth gate', () => {
   it('rejects an unauthenticated API request with 401', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/workspaces' });

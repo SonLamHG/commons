@@ -11,6 +11,10 @@ import { registerAuthRoutes, makeRequireAuth } from '../auth/routes.js';
 import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
 import { extractText, referencePath } from '../upload/extract.js';
+import { assertPublicHttpsUrl } from '../util/ssrf.js';
+import { registerSecurityHeaders } from '../security/headers.js';
+import { registerCors } from '../security/cors.js';
+import { registerRateLimit } from '../security/rateLimit.js';
 
 function mimeForPath(path: string): string {
   const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
@@ -75,7 +79,10 @@ export interface ApiDeps {
 
 export function buildApi(deps: ApiDeps): FastifyInstance {
   const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner } = deps;
-  const app = Fastify({ forceCloseConnections: true });
+  const app = Fastify({ forceCloseConnections: true, trustProxy: true });
+  registerSecurityHeaders(app);
+  registerCors(app, appUrl);
+  registerRateLimit(app);
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
   // --- auth: mount routes, then gate everything else under /api ---
@@ -97,7 +104,7 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
   const publishOf = (req: FastifyRequest): PublishStore => {
     const t = tenantOf(req);
     let s = publishStores.get(t);
-    if (!s) { s = createPublishStore(registry.rootFor(t)); publishStores.set(t, s); }
+    if (!s) { s = createPublishStore(registry.rootFor(t), authSecret); publishStores.set(t, s); }
     return s;
   };
   const lock = <T>(req: FastifyRequest, ws: string, fn: () => Promise<T>) =>
@@ -229,9 +236,13 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     return publishOf(req).getConfig(ws);
   });
 
-  app.put('/api/workspaces/:ws/config', async (req) => {
+  app.put('/api/workspaces/:ws/config', async (req, reply) => {
     const { ws } = req.params as { ws: string };
     const { webhookUrl } = (req.body ?? {}) as { webhookUrl?: string };
+    if (webhookUrl) {
+      try { await assertPublicHttpsUrl(webhookUrl); }
+      catch (e) { return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) }); }
+    }
     await lock(req, ws, async () => publishOf(req).setConfig(ws, { webhookUrl }));
     return { ok: true };
   });
@@ -269,6 +280,7 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     }
 
     try {
+      await assertPublicHttpsUrl(webhookUrl);   // re-resolve at send time
       const r = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

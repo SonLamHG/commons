@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join, dirname, resolve } from 'node:path';
+import { encryptSecret, decryptSecret } from '../util/secretbox.js';
 
 export interface PublishConfig { webhookUrl?: string; }
 export interface PublishRecord { publishedAt: string; }
@@ -12,7 +13,8 @@ export interface PublishStore {
   markPublished(ws: string, path: string): PublishRecord;
 }
 
-export function createPublishStore(rootDir: string): PublishStore {
+/** Per-tenant publish metadata. `secret` keys the at-rest encryption of webhookUrl. */
+export function createPublishStore(rootDir: string, secret: string): PublishStore {
   rootDir = resolve(rootDir);
   const file = (ws: string) => join(rootDir, 'meta', ws, 'publish.json');
   const read = (ws: string): PublishData => {
@@ -25,8 +27,15 @@ export function createPublishStore(rootDir: string): PublishStore {
     writeFileSync(f, JSON.stringify(data, null, 2));
   };
   return {
-    getConfig(ws) { return { webhookUrl: read(ws).webhookUrl }; },
-    setConfig(ws, config) { const d = read(ws); d.webhookUrl = config.webhookUrl; write(ws, d); },
+    getConfig(ws) {
+      const stored = read(ws).webhookUrl;
+      return { webhookUrl: stored ? decryptSecret(stored, secret) : undefined };
+    },
+    setConfig(ws, config) {
+      const d = read(ws);
+      d.webhookUrl = config.webhookUrl ? encryptSecret(config.webhookUrl, secret) : undefined;
+      write(ws, d);
+    },
     listPublished(ws) { return read(ws).published; },
     markPublished(ws, path) {
       const d = read(ws);

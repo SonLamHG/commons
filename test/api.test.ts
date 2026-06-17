@@ -57,6 +57,16 @@ const json = (r: { payload: string }) => JSON.parse(r.payload);
 const inj = (opts: Parameters<typeof app.inject>[0] & { headers?: Record<string, string> }) =>
   app.inject({ ...opts, headers: { cookie, ...(opts.headers ?? {}) } });
 
+describe('security', () => {
+  it('serves security headers and rate-limit on the real API', async () => {
+    const res = await inj({ method: 'GET', url: '/api/health' });
+    expect(res.statusCode).toBe(200);
+    expect(res.headers['x-content-type-options']).toBe('nosniff');
+    expect(res.headers['content-security-policy']).toContain("default-src 'self'");
+    expect(res.statusCode).not.toBe(429); // rate-limit hook wired but not tripped
+  });
+});
+
 describe('auth gate', () => {
   it('rejects an unauthenticated API request with 401', async () => {
     const res = await app.inject({ method: 'GET', url: '/api/workspaces' });
@@ -308,22 +318,31 @@ describe('publish', () => {
   afterEach(async () => { await receiver.close(); });
 
   it('PUT config then publish posts content to the webhook and marks published', async () => {
-    await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: receiverUrl } });
-    const cfg = await inj({ method: 'GET', url: '/api/workspaces/ws1/config' });
-    expect(JSON.parse(cfg.payload).webhookUrl).toBe(receiverUrl);
+    const webhookUrl = 'https://93.184.216.34/hook';
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
+      received = JSON.parse((init as RequestInit).body as string);
+      return new Response(JSON.stringify({ ok: true }), { status: 200 });
+    });
+    try {
+      await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl } });
+      const cfg = await inj({ method: 'GET', url: '/api/workspaces/ws1/config' });
+      expect(JSON.parse(cfg.payload).webhookUrl).toBe(webhookUrl);
 
-    const res = await inj({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
-    expect(res.statusCode).toBe(200);
-    expect(JSON.parse(res.payload).published).toBe(true);
+      const res = await inj({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
+      expect(res.statusCode).toBe(200);
+      expect(JSON.parse(res.payload).published).toBe(true);
 
-    expect(received).toMatchObject({ workspace: 'ws1', path: 'items/post-1/post.md', title: 'Hello World' });
-    expect(received.content).toContain('Body text');
-    expect(received.text).toContain('Hello World');
-    expect(received.text).toContain('Body text');
-    expect(received.text).not.toContain('#');
+      expect(received).toMatchObject({ workspace: 'ws1', path: 'items/post-1/post.md', title: 'Hello World' });
+      expect(received.content).toContain('Body text');
+      expect(received.text).toContain('Hello World');
+      expect(received.text).toContain('Body text');
+      expect(received.text).not.toContain('#');
 
-    const pub = await inj({ method: 'GET', url: '/api/workspaces/ws1/published' });
-    expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeDefined();
+      const pub = await inj({ method: 'GET', url: '/api/workspaces/ws1/published' });
+      expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeDefined();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('returns 400 when no webhook configured', async () => {
@@ -333,11 +352,16 @@ describe('publish', () => {
   });
 
   it('returns 502 when the webhook fails', async () => {
-    await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: 'http://127.0.0.1:1/nope' } });
-    const res = await inj({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
-    expect(res.statusCode).toBe(502);
-    const pub = await inj({ method: 'GET', url: '/api/workspaces/ws1/published' });
-    expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeUndefined();
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+    try {
+      await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: 'https://93.184.216.34/nope' } });
+      const res = await inj({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
+      expect(res.statusCode).toBe(502);
+      const pub = await inj({ method: 'GET', url: '/api/workspaces/ws1/published' });
+      expect(JSON.parse(pub.payload)['items/post-1/post.md']).toBeUndefined();
+    } finally {
+      fetchSpy.mockRestore();
+    }
   });
 
   it('attaches the first image as base64 in the webhook payload', async () => {
@@ -356,7 +380,7 @@ describe('publish', () => {
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
       );
 
-      await c.app.inject({ method: 'PUT', url: '/api/workspaces/imgpub/config', payload: { webhookUrl: 'https://example.com/hook' }, headers: { cookie: c.cookie } });
+      await c.app.inject({ method: 'PUT', url: '/api/workspaces/imgpub/config', payload: { webhookUrl: 'https://93.184.216.34/hook' }, headers: { cookie: c.cookie } });
       const res = await c.app.inject({ method: 'POST', url: '/api/workspaces/imgpub/publish', payload: { path: 'items/post.md' }, headers: { cookie: c.cookie } });
 
       expect(res.statusCode).toBe(200);
@@ -386,7 +410,7 @@ describe('publish', () => {
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
       );
 
-      await c.app.inject({ method: 'PUT', url: '/api/workspaces/noimg/config', payload: { webhookUrl: 'https://example.com/hook' }, headers: { cookie: c.cookie } });
+      await c.app.inject({ method: 'PUT', url: '/api/workspaces/noimg/config', payload: { webhookUrl: 'https://93.184.216.34/hook' }, headers: { cookie: c.cookie } });
       const res = await c.app.inject({ method: 'POST', url: '/api/workspaces/noimg/publish', payload: { path: 'items/post.md' }, headers: { cookie: c.cookie } });
 
       expect(res.statusCode).toBe(200);
@@ -400,5 +424,25 @@ describe('publish', () => {
       c.db.close();
       rmSync(r, { recursive: true, force: true });
     }
+  });
+
+  it('rejects a webhook pointing at a private/metadata address (SSRF)', async () => {
+    await inj({ method: 'POST', url: '/api/workspaces', payload: { id: 'wssrf1', template: 'blank' } });
+    const res = await inj({
+      method: 'PUT', url: '/api/workspaces/wssrf1/config',
+      payload: { webhookUrl: 'https://169.254.169.254/latest/meta-data' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/not allowed|https/);
+  });
+
+  it('rejects a non-https webhook URL', async () => {
+    await inj({ method: 'POST', url: '/api/workspaces', payload: { id: 'wssrf2', template: 'blank' } });
+    const res = await inj({
+      method: 'PUT', url: '/api/workspaces/wssrf2/config',
+      payload: { webhookUrl: 'http://example.com/hook' },
+    });
+    expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/https/);
   });
 });

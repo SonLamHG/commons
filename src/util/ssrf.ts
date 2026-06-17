@@ -33,7 +33,8 @@ export function isBlockedIp(ip: string): boolean {
   if (v === 6) {
     const lo = ip.toLowerCase();
     if (lo === '::1' || lo === '::') return true;            // loopback / unspecified
-    if (lo.startsWith('fe80')) return true;                  // link-local
+    const fe10 = parseInt(lo.slice(0, 4), 16);
+    if (fe10 >= 0xfe80 && fe10 <= 0xfebf) return true;  // link-local fe80::/10
     if (lo.startsWith('fc') || lo.startsWith('fd')) return true; // unique-local fc00::/7
     if (lo.startsWith('ff')) return true;                    // multicast
     // IPv4-mapped (::ffff:a.b.c.d) — re-check the embedded v4

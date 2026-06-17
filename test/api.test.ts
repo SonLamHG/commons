@@ -308,7 +308,7 @@ describe('publish', () => {
   afterEach(async () => { await receiver.close(); });
 
   it('PUT config then publish posts content to the webhook and marks published', async () => {
-    const webhookUrl = 'https://example.com/hook';
+    const webhookUrl = 'https://93.184.216.34/hook';
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (_url, init) => {
       received = JSON.parse((init as RequestInit).body as string);
       return new Response(JSON.stringify({ ok: true }), { status: 200 });
@@ -344,7 +344,7 @@ describe('publish', () => {
   it('returns 502 when the webhook fails', async () => {
     const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
     try {
-      await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: 'https://example.com/nope' } });
+      await inj({ method: 'PUT', url: '/api/workspaces/ws1/config', payload: { webhookUrl: 'https://93.184.216.34/nope' } });
       const res = await inj({ method: 'POST', url: '/api/workspaces/ws1/publish', payload: { path: 'items/post-1/post.md' } });
       expect(res.statusCode).toBe(502);
       const pub = await inj({ method: 'GET', url: '/api/workspaces/ws1/published' });
@@ -370,7 +370,7 @@ describe('publish', () => {
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
       );
 
-      await c.app.inject({ method: 'PUT', url: '/api/workspaces/imgpub/config', payload: { webhookUrl: 'https://example.com/hook' }, headers: { cookie: c.cookie } });
+      await c.app.inject({ method: 'PUT', url: '/api/workspaces/imgpub/config', payload: { webhookUrl: 'https://93.184.216.34/hook' }, headers: { cookie: c.cookie } });
       const res = await c.app.inject({ method: 'POST', url: '/api/workspaces/imgpub/publish', payload: { path: 'items/post.md' }, headers: { cookie: c.cookie } });
 
       expect(res.statusCode).toBe(200);
@@ -400,7 +400,7 @@ describe('publish', () => {
         new Response(JSON.stringify({ ok: true }), { status: 200 }),
       );
 
-      await c.app.inject({ method: 'PUT', url: '/api/workspaces/noimg/config', payload: { webhookUrl: 'https://example.com/hook' }, headers: { cookie: c.cookie } });
+      await c.app.inject({ method: 'PUT', url: '/api/workspaces/noimg/config', payload: { webhookUrl: 'https://93.184.216.34/hook' }, headers: { cookie: c.cookie } });
       const res = await c.app.inject({ method: 'POST', url: '/api/workspaces/noimg/publish', payload: { path: 'items/post.md' }, headers: { cookie: c.cookie } });
 
       expect(res.statusCode).toBe(200);

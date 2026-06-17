@@ -1,10 +1,12 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // vi.mock is hoisted above imports by Vitest so ssrf.ts picks up the mock too.
 // Tests using literal IPs never call lookup (net.isIP returns truthy first), so this
 // mock is only exercised by the DNS-resolution test at the bottom.
 vi.mock('node:dns/promises', () => ({ lookup: vi.fn() }));
 import { lookup } from 'node:dns/promises';
+
+beforeEach(() => { vi.mocked(lookup).mockReset(); });
 
 import { isBlockedIp, assertPublicHttpsUrl } from '../src/util/ssrf.js';
 
@@ -36,6 +38,5 @@ describe('assertPublicHttpsUrl', () => {
   it('rejects a hostname that resolves to a private IP (DNS path)', async () => {
     vi.mocked(lookup).mockResolvedValue([{ address: '10.0.0.5', family: 4 }] as never);
     await expect(assertPublicHttpsUrl('https://evil.internal/hook')).rejects.toThrow(/not allowed/);
-    vi.mocked(lookup).mockReset();
   });
 });

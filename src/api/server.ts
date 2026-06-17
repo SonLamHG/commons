@@ -11,6 +11,7 @@ import { registerAuthRoutes, makeRequireAuth } from '../auth/routes.js';
 import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
 import { extractText, referencePath } from '../upload/extract.js';
+import { assertPublicHttpsUrl } from '../util/ssrf.js';
 
 function mimeForPath(path: string): string {
   const ext = path.slice(path.lastIndexOf('.')).toLowerCase();
@@ -229,9 +230,13 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     return publishOf(req).getConfig(ws);
   });
 
-  app.put('/api/workspaces/:ws/config', async (req) => {
+  app.put('/api/workspaces/:ws/config', async (req, reply) => {
     const { ws } = req.params as { ws: string };
     const { webhookUrl } = (req.body ?? {}) as { webhookUrl?: string };
+    if (webhookUrl) {
+      try { await assertPublicHttpsUrl(webhookUrl); }
+      catch (e) { return reply.code(400).send({ error: e instanceof Error ? e.message : String(e) }); }
+    }
     await lock(req, ws, async () => publishOf(req).setConfig(ws, { webhookUrl }));
     return { ok: true };
   });
@@ -269,6 +274,7 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     }
 
     try {
+      await assertPublicHttpsUrl(webhookUrl);   // re-resolve at send time
       const r = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

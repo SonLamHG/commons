@@ -15,6 +15,12 @@ const j = async (r: Response) => {
 
 export const api = {
   auth: {
+    // Initial probe — always 200, so an unauthenticated load doesn't log a
+    // console error. Returns a discriminated union on `authenticated`.
+    session: (): Promise<
+      | { authenticated: false }
+      | { authenticated: true; userId: string; tenantId: string; email: string }
+    > => fetch('/api/auth/session').then(j),
     me: (): Promise<{ userId: string; tenantId: string; email: string }> =>
       fetch('/api/auth/me').then(j),
     request: (email: string): Promise<{ ok: boolean }> =>

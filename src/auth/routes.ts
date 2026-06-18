@@ -73,6 +73,17 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
     return reply.send({ ok: true });
   });
 
+  // Unauthenticated-friendly probe: always 200 so the SPA's initial "am I
+  // logged in?" check never surfaces a 401 in the browser console (the browser
+  // logs every 4xx fetch regardless of how JS handles it).
+  app.get('/api/auth/session', async (req) => {
+    const raw = parseCookies(req.headers.cookie)[COOKIE];
+    const userId = raw ? readSession(raw, deps.secret) : null;
+    const user = userId ? deps.db.getUserById(userId) : undefined;
+    if (!user) return { authenticated: false as const };
+    return { authenticated: true as const, userId: user.id, tenantId: user.tenant_id, email: user.email };
+  });
+
   const requireAuth = makeRequireAuth(deps);
   app.get('/api/auth/me', { preHandler: requireAuth }, async (req) => {
     const { userId, tenantId } = (req as FastifyRequest & { auth: { userId: string; tenantId: string } }).auth;

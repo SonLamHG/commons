@@ -2,6 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { api, type Proposal, type FileDiff, type MergeResult, isImage } from '../api';
 import { renderMarkdown, resolvePostImage } from '../markdown';
 
+const STATUS_LABEL: Record<string, string> = {
+  open: 'đang mở',
+  submitted: 'chờ duyệt',
+  merged: 'đã merge',
+  discarded: 'đã loại',
+};
+export const statusLabel = (s: string) => STATUS_LABEL[s] ?? s;
+
 function DiffBody({ diff }: { diff: string }) {
   return (
     <pre className="diff-body">
@@ -65,36 +73,49 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
     finally { setBusy(false); }
   };
 
+  // Drop image docs whose filename is embedded by some markdown doc — otherwise
+  // the picture shows twice (once as a standalone banner, once inline in the post).
+  const mdText = (docs ?? []).filter((d) => d.path.endsWith('.md')).map((d) => d.content).join('\n');
+  const readDocs = (docs ?? []).filter((d) => {
+    if (!isImage(d.path)) return true;
+    const base = d.path.split('/').pop() ?? d.path;
+    return !mdText.includes(base);
+  });
+
   return (
     <div>
-      <h3>{proposal.title} <span className={`badge ${proposal.status}`}>{proposal.status}</span></h3>
+      <div className="reviewbar">
+        <h3>{proposal.title} <span className={`badge ${proposal.status}`}>{statusLabel(proposal.status)}</span></h3>
+        {reviewable && (
+          <div className="actions reviewbar-actions">
+            <button className="btn approve" disabled={busy} onClick={approve}>Duyệt &amp; merge</button>
+            <button className="btn reject" disabled={busy} onClick={reject}>Từ chối</button>
+          </div>
+        )}
+      </div>
       {!reviewable && (
-        <p className="empty">This proposal is {proposal.status} — already resolved, nothing to review.</p>
+        <p className="empty">Đề xuất này {statusLabel(proposal.status)} — đã xử lý xong, không còn gì để duyệt.</p>
       )}
       {conflict && (
         <div className="conflict">
-          Merge conflict on: {conflict.join(', ')}. Main was left untouched. Resolve and resubmit.
+          Xung đột merge ở: {conflict.join(', ')}. Nhánh main được giữ nguyên. Hãy giải quyết và gửi lại.
         </div>
       )}
-      {error && <div className="conflict">Action failed: {error}</div>}
-      {reviewable && (
-        <div className="actions">
-          <button className="btn approve" disabled={busy} onClick={approve}>Approve &amp; merge</button>
-          <button className="btn reject" disabled={busy} onClick={reject}>Reject</button>
-        </div>
-      )}
+      {error && <div className="conflict">Thao tác thất bại: {error}</div>}
       {reviewable && diffs === null && <p className="empty">Đang tải…</p>}
       {reviewable && diffs?.length === 0 && <p className="empty">Không có thay đổi.</p>}
 
       {reviewable && diffs && diffs.length > 0 && (
-        <div className="viewtoggle">
-          <button className={view === 'read' ? 'seg active' : 'seg'} onClick={() => setView('read')}>Bản đọc</button>
-          <button className={view === 'changes' ? 'seg active' : 'seg'} onClick={() => setView('changes')}>Thay đổi</button>
+        <div className="viewtoggle" role="group" aria-label="Chế độ xem">
+          <button aria-pressed={view === 'read'} className={view === 'read' ? 'seg active' : 'seg'} onClick={() => setView('read')}>Bản đọc</button>
+          <button aria-pressed={view === 'changes'} className={view === 'changes' ? 'seg active' : 'seg'} onClick={() => setView('changes')}>Thay đổi</button>
         </div>
       )}
 
-      {/* Reading view: the proposed final document, as a marketer would read it. */}
-      {view === 'read' && docs?.map((d) => (
+      {/* Reading view: the proposed final document, as a marketer would read it.
+          Standalone image assets that a markdown post already embeds are hidden
+          here so the same picture doesn't appear twice (banner + inline). */}
+      {view === 'read' && readDocs?.map((d) => (
         <div key={d.path} className="docwrap">
           <div className="docmeta">
             <span className={`badge ${d.status === 'added' ? 'open' : d.status === 'deleted' ? 'discarded' : 'submitted'}`}>
@@ -108,7 +129,7 @@ export function DiffView({ ws, proposal, onChanged }: { ws: string; proposal: Pr
               ? <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
               : d.path.endsWith('.md')
                 ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
-                : <pre className="diff-body" style={{ padding: '12px' }}>{d.content}</pre>}
+                : <pre className="diff-body diff-body--pad">{d.content}</pre>}
         </div>
       ))}
 

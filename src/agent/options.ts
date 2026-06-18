@@ -21,6 +21,9 @@ const DENY_BUILTINS = [
   'Bash', 'Edit', 'Write', 'Read', 'MultiEdit', 'NotebookEdit', 'NotebookRead',
   'Glob', 'Grep', 'LS', 'WebFetch', 'WebSearch', 'TodoWrite', 'Task',
   'KillShell', 'BashOutput', 'ExitPlanMode', 'SlashCommand', 'ToolSearch',
+  // Skill/Agent let the model load host skills (e.g. `init`) or spawn subagents,
+  // which derails it from the commons MCP workflow into an empty proposal.
+  'Skill', 'Agent',
 ];
 
 /** Default agent model: a modest, low-cost model. Override with COMMONS_AGENT_MODEL. */
@@ -35,7 +38,7 @@ function systemPrompt(workspace: string): string {
     `Workflow, in order:`,
     `1. Call overview, then read_state / read_file, to understand the current content and any material under reference/.`,
     `2. create_proposal with a short, human-readable title.`,
-    `3. write_proposal_file for each file you add or change (Markdown). When an image would strengthen the post, call generate_image to create one under assets/ and reference it in the Markdown with ![alt](path).`,
+    `3. write_proposal_file for each file you add or change (Markdown). When an image would strengthen the post, call generate_image to create one under assets/ (at the workspace root) and reference it in the Markdown with a path RELATIVE TO THE MARKDOWN FILE, not the workspace root. Example: a post at drafts/foo.md must reference ![alt](../assets/foo.png) — climb out of drafts/ with ../ first. Getting this wrong renders a broken image.`,
     `4. diff_proposal to check your own changes, then submit_proposal.`,
     ``,
     `Rules: use only the commons tools available to you. Keep deliverables in Markdown. If the request is ambiguous, make reasonable assumptions and state them at the top of the draft. Do not ask the user follow-up questions — produce the best proposal you can in one pass.`,

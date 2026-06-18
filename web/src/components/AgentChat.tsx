@@ -43,7 +43,7 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
 
   return (
     <div className="chat">
-      <div className="chatlog" ref={logRef}>
+      <div className="chatlog" ref={logRef} role="log" aria-live="polite" aria-busy={busy}>
         {lines.length === 0 ? (
           <div className="chat-empty">
             <div className="chat-empty-ornament">✦ ✦ ✦</div>

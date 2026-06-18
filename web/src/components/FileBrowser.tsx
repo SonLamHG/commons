@@ -3,6 +3,9 @@ import { api, type FileNode, isImage } from '../api';
 import { renderMarkdown, resolvePostImage } from '../markdown';
 import { buildTree } from '../tree';
 import { FileTree } from './FileTree';
+import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog';
+
+type Notice = { kind: 'ok' | 'error'; text: string };
 
 export function FileBrowser({ ws }: { ws: string }) {
   const [files, setFiles] = useState<FileNode[] | null>(null);
@@ -14,9 +17,10 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [savedWebhook, setSavedWebhook] = useState<string | undefined>(undefined);
   const [published, setPublished] = useState<Record<string, { publishedAt: string }>>({});
   const [publishing, setPublishing] = useState(false);
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
-  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [publishMsg, setPublishMsg] = useState<Notice | null>(null);
+  const [uploadMsg, setUploadMsg] = useState<Notice | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes))
@@ -44,8 +48,8 @@ export function FileBrowser({ ws }: { ws: string }) {
     try {
       await api.setConfig(ws, webhook.trim());
       setSavedWebhook(webhook.trim() || undefined);
-      setPublishMsg('Webhook saved.');
-    } catch (e) { setPublishMsg(e instanceof Error ? e.message : String(e)); }
+      setPublishMsg({ kind: 'ok', text: 'Đã lưu webhook.' });
+    } catch (e) { setPublishMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) }); }
   };
 
   const doPublish = async () => {
@@ -54,11 +58,11 @@ export function FileBrowser({ ws }: { ws: string }) {
     try {
       await api.publish(ws, selected);
       api.published(ws).then(setPublished).catch(() => {});
-      setPublishMsg('Published ✓');
+      setPublishMsg({ kind: 'ok', text: 'Đã đăng ✓' });
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
       let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
-      setPublishMsg('Publish failed: ' + msg);
+      setPublishMsg({ kind: 'error', text: 'Đăng thất bại: ' + msg });
     } finally { setPublishing(false); }
   };
 
@@ -70,19 +74,17 @@ export function FileBrowser({ ws }: { ws: string }) {
     try {
       const { path } = await api.uploadFile(ws, file);
       await loadFiles();
-      setUploadMsg(`Đã thêm ${path} — agent có thể đọc làm ngữ cảnh.`);
+      setUploadMsg({ kind: 'ok', text: `Đã thêm ${path} — agent có thể đọc làm ngữ cảnh.` });
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
-      setUploadMsg('Upload lỗi: ' + msg);
+      setUploadMsg({ kind: 'error', text: 'Tải lên lỗi: ' + msg });
     } finally { setUploading(false); }
   };
 
-  const onDelete = async () => {
-    if (!selected) return;
-    if (!window.confirm(`Xóa "${selected}"? Hành động này không hoàn tác được.`)) return;
+  const doDelete = async (path: string) => {
     try {
-      await api.deleteFile(ws, selected);
+      await api.deleteFile(ws, path);
       setSelected(null); setContent(null);
       await loadFiles();
     } catch (err) {
@@ -92,6 +94,17 @@ export function FileBrowser({ ws }: { ws: string }) {
     }
   };
 
+  const onDelete = () => {
+    if (!selected) return;
+    const path = selected;
+    setConfirm({
+      title: 'Xóa tài liệu?',
+      body: <><code>{path}</code> sẽ bị xóa — <b>không hoàn tác được</b>.</>,
+      confirmLabel: 'Xóa tài liệu',
+      onConfirm: () => { void doDelete(path); },
+    });
+  };
+
   const tree = useMemo(() => buildTree(files ?? []), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
@@ -99,10 +112,10 @@ export function FileBrowser({ ws }: { ws: string }) {
   return (
     <div>
       <div className="webhookbar">
-        <label>Publish webhook</label>
-        <input className="newinput" placeholder="https://hook.make.com/... or a Discord webhook URL"
+        <label>Webhook đăng bài</label>
+        <input className="newinput" placeholder="https://hook.make.com/... hoặc URL webhook Discord"
           value={webhook} onChange={(e) => setWebhook(e.target.value)} />
-        <button className="btn save" onClick={saveWebhook}>Save</button>
+        <button className="btn save" onClick={saveWebhook}>Lưu</button>
       </div>
       <div className="uploadbar">
         <div>
@@ -111,16 +124,16 @@ export function FileBrowser({ ws }: { ws: string }) {
         </div>
         <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
         <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
-          {uploading ? 'Đang tải…' : '↑ Upload tài liệu'}
+          {uploading ? 'Đang tải…' : '↑ Tải tài liệu lên'}
         </button>
       </div>
-      {uploadMsg && <p className="empty" style={{ padding: '0 28px', color: uploadMsg.includes('lỗi') ? '#c43d23' : '#2f6b46' }}>{uploadMsg}</p>}
+      {uploadMsg && <p className={`notice notice--${uploadMsg.kind} notice--bar`} role="status">{uploadMsg.text}</p>}
       <div className="proposals">
         <div className="list">
-          <h2>Files</h2>
-          {error && <p className="empty" style={{ color: '#c43d23' }}>{error}</p>}
-          {files === null && <p className="empty">Loading…</p>}
-          {files !== null && files.length === 0 && <p className="empty">No files yet.</p>}
+          <h2>Tài liệu</h2>
+          {error && <p className="notice notice--error" role="alert">{error}</p>}
+          {files === null && <p className="empty">Đang tải…</p>}
+          {files !== null && files.length === 0 && <p className="empty">Chưa có tài liệu nào.</p>}
           {files !== null && files.length > 0 && (
             <FileTree
               nodes={tree}
@@ -131,24 +144,24 @@ export function FileBrowser({ ws }: { ws: string }) {
           )}
         </div>
         <div className="detail">
-          {!selected && <p className="empty">Select a file to view.</p>}
+          {!selected && <p className="empty">Chọn một tài liệu để xem.</p>}
           {selected && (
             <>
               <div className="detailbar">
                 <span className="docpath">{selected}</span>
-                <button className="btn reject ghost" onClick={onDelete}>Xóa file</button>
+                <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
               </div>
               {isMd && (
                 <div className="actions">
                   <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
-                    {pub ? 'Re-publish' : 'Publish'}
+                    {pub ? 'Đăng lại' : 'Đăng bài'}
                   </button>
-                  {!savedWebhook && <span className="empty">Set a webhook above to publish.</span>}
-                  {pub && <span className="empty">Last published {new Date(pub.publishedAt).toLocaleString()}</span>}
+                  {!savedWebhook && <span className="empty">Đặt webhook ở trên để đăng bài.</span>}
+                  {pub && <span className="empty">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
                 </div>
               )}
-              {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#c43d23' : '#2f6b46' }}>{publishMsg}</p>}
-              {content === null && <p className="empty">Loading…</p>}
+              {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
+              {content === null && <p className="empty">Đang tải…</p>}
               {content !== null && (
                 isImage(selected)
                   ? <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
@@ -157,7 +170,7 @@ export function FileBrowser({ ws }: { ws: string }) {
                     : (
                       <div className="diff-file">
                         <h4>{selected}</h4>
-                        <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
+                        <pre className="diff-body diff-body--pad">{content}</pre>
                       </div>
                     )
               )}
@@ -165,6 +178,7 @@ export function FileBrowser({ ws }: { ws: string }) {
           )}
         </div>
       </div>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

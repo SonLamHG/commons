@@ -10,7 +10,7 @@
   --paper-2:    #fbf8f1;   /* raised surfaces */
   --ink:        #1f1b16;   /* near-black, warm */
   --ink-soft:   #5c5347;   /* secondary text */
-  --ink-faint:  #9c9384;   /* tertiary / empty states */
+  --ink-faint:  #756b59;   /* tertiary / empty states — darkened to meet WCAG AA (~4.6:1 on paper) */
   --rule:       #e2d8c6;   /* hairline rules / borders */
   --rule-soft:  #ece3d4;
 
@@ -83,7 +83,7 @@ body::before {
   line-height: 1;
 }
 .sidebar h1::after {
-  content: "Knowledge-work review desk";
+  content: "Bàn duyệt công việc tri thức";
   display: block;
   font-family: var(--sans);
   font-weight: 500;
@@ -260,7 +260,7 @@ body::before {
 
 .tabs {
   display: flex; gap: 2px;
-  padding: 18px 28px 0;
+  padding: 12px 28px 0;
   border-bottom: 1px solid var(--rule);
   background: var(--paper);
 }
@@ -277,7 +277,7 @@ body::before {
 .tab:hover { color: var(--ink); }
 .tab.active { color: var(--ink); border-bottom-color: var(--vermilion); }
 
-.proposals { display: flex; height: calc(100% - 56px); }
+.proposals { display: flex; height: calc(100% - 50px); }
 .list {
   width: 340px; flex-shrink: 0;
   border-right: 1px solid var(--rule);
@@ -289,7 +289,49 @@ body::before {
   font-size: 19px; letter-spacing: -.01em;
   margin: 0 0 16px; color: var(--ink);
 }
-.detail { flex: 1; padding: 30px 36px; overflow: auto; }
+.detail { flex: 1; padding: 22px 36px; overflow: auto; }
+/* cap the review column so the sticky toolbar's title and actions don't fly to
+   opposite screen edges on wide desks; keeps the eye-travel short. */
+.detail > * { max-width: 1040px; margin-left: auto; margin-right: auto; }
+
+/* Sticky review bar — keeps the proposal title + Approve/Reject in view while
+   scrolling a long document, so the reviewer never has to scroll back up to act.
+   Negative margins bleed it to the detail-pane edges; padding re-establishes the
+   gutter. */
+.reviewbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px 24px; flex-wrap: wrap;
+  /* side bleed only — NO negative top margin (it desyncs the sticky pin and lets
+     content peek above the bar). A paper ::before covers the scroll-port padding. */
+  margin: 0 -36px 18px; padding: 12px 36px 14px;
+  /* faint top sheen → always reads as a raised control band, not page (solid base
+     keeps content from showing through when stuck) */
+  background: linear-gradient(#fffdf8, var(--paper-2));
+  border-bottom: 1.5px solid var(--rule);
+  box-shadow: 0 6px 16px -12px rgba(31,27,22,.4), inset 0 1px 0 rgba(255,255,255,.6);
+}
+/* Paper mask filling the .detail top padding, so nothing scrolls into view
+   above the stuck bar. Moves with the bar; tall enough for any padding value. */
+.reviewbar::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 100%;
+  height: 60px; background: var(--paper-2);
+}
+/* tighter title in the bar so the sticky header stays slim */
+.detail .reviewbar h3 { margin: 0; font-size: 20px; gap: 12px; }
+.detail .reviewbar h3 .badge { transform: none; font-size: 10px; padding: 4px 9px; border-width: 1.5px; }
+.reviewbar-actions {
+  margin: 0; gap: 10px;
+  padding-left: 16px; border-left: 1px solid var(--rule);
+}
+.reviewbar-actions .btn { padding: 8px 16px; font-size: 13px; }
+/* merge is irreversible — give it extra visual weight so it reads as the primary, deliberate act */
+.reviewbar-actions .btn.approve {
+  box-shadow: 0 0 0 1px var(--forest), 0 2px 4px rgba(47,107,70,.18);
+}
+.reviewbar-actions .btn.approve:hover:not(:disabled) {
+  box-shadow: 0 0 0 1px var(--forest), 0 6px 14px rgba(47,107,70,.28);
+}
 .detail h3 {
   font-family: var(--serif); font-weight: 600;
   font-size: 26px; letter-spacing: -.015em; line-height: 1.2;
@@ -302,6 +344,7 @@ body::before {
 
 /* ---------- List rows (proposals & files) ---------- */
 .prop {
+  position: relative;
   display: flex; gap: 10px; align-items: center;
   width: 100%; text-align: left;
   background: var(--paper-2);
@@ -310,14 +353,26 @@ body::before {
   padding: 12px 13px; margin-bottom: 9px;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: border-color .15s, box-shadow .15s, transform .1s;
+  transition: border-color .15s, box-shadow .15s, transform .1s, background .15s;
   animation: rise .4s both;
 }
+/* the vermilion reading-bar, echoing the sidebar spine — revealed on hover/active */
+.prop::before {
+  content: ""; position: absolute; left: 0; top: 10px; bottom: 10px;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--vermilion);
+  transform: scaleY(0); transform-origin: center;
+  transition: transform .18s cubic-bezier(.2,.7,.2,1);
+}
 .prop:hover { border-color: var(--ink-faint); transform: translateY(-1px); }
+.prop:hover::before { transform: scaleY(.5); }
 .prop.active {
   border-color: var(--ink);
+  background: var(--paper);
   box-shadow: 0 0 0 1px var(--ink), var(--shadow-md);
+  transform: translateY(-1px);
 }
+.prop.active::before { transform: scaleY(1); }
 .list .prop:nth-child(2) { animation-delay: .03s; }
 .list .prop:nth-child(3) { animation-delay: .06s; }
 .list .prop:nth-child(4) { animation-delay: .09s; }
@@ -326,7 +381,56 @@ body::before {
 
 .title { flex: 1; font-family: var(--sans); font-weight: 600; font-size: 14px; color: var(--ink); }
 
+/* ---------- Proposal groups (status-sorted) ---------- */
+/* a faint git-graph spine threads through the groups: a continuous vertical line
+   in the left gutter, a node at each head — the product's core metaphor made
+   visible (branches threaded toward merge) */
+.prop-group { position: relative; margin-bottom: 18px; }
+/* the spine: runs from this head's node down into the next group's */
+.prop-group:not(:last-child)::before {
+  content: ""; position: absolute; left: 7px; top: 7px; bottom: -18px;
+  width: 1.5px; background: var(--rule);
+}
+.prop-group__head {
+  position: relative;
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--sans); font-size: 10.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--ink-faint);
+  margin: 0 0 10px; padding: 0 2px 0 22px;
+}
+.prop-group__head::before {
+  content: ""; position: absolute; left: 4px; top: 50%; transform: translateY(-50%);
+  width: 7px; height: 7px; border-radius: 50%; z-index: 1;
+  background: var(--paper); border: 1.5px solid var(--ink-faint);
+}
+.prop-group__head[data-group="submitted"]::before { border-color: var(--amber); }
+.prop-group__head[data-group="open"]::before      { border-color: var(--indigo); }
+.prop-group__head[data-group="resolved"]::before  { border-color: var(--slate); background: var(--slate); }
+.prop-group__head::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.prop-group__count {
+  font-family: var(--mono); font-size: 10px; font-weight: 500;
+  color: var(--ink-faint); background: rgba(31,27,22,.05);
+  padding: 1px 7px; border-radius: 20px; letter-spacing: 0;
+}
+/* the row now stacks title over a timestamp, so align the stamp to the top */
+.prop { align-items: flex-start; }
+/* indent rows into the graph's right margin so the spine reads as a gutter */
+.prop-group .prop { margin-left: 16px; width: calc(100% - 16px); }
+.prop-main { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.prop-time { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); }
+
 .empty { color: var(--ink-faint); font-size: 14px; line-height: 1.5; }
+
+/* ---------- Notices (status / error feedback) ---------- */
+.notice {
+  font-family: var(--sans); font-size: 13.5px; line-height: 1.5;
+  margin: 6px 0;
+}
+.notice--ok    { color: var(--forest); }
+.notice--error { color: var(--vermilion); }
+/* full-width bar variant, aligned with the toolbars above it */
+.notice--bar { padding: 0 28px; }
 
 /* ---------- Badges as rubber stamps ---------- */
 .badge {
@@ -370,6 +474,8 @@ body::before {
   color: var(--ink);
 }
 .diff-line { padding: 0 14px; white-space: pre; }
+/* plain-text file body (no per-line divs) needs its own padding */
+.diff-body--pad { padding: 12px; }
 .diff-line.add  { background: rgba(47,107,70,.12);  color: #1f5635; box-shadow: inset 2px 0 0 var(--forest); }
 .diff-line.del  { background: rgba(196,61,35,.10);   color: #9c2e1a; box-shadow: inset 2px 0 0 var(--vermilion); }
 .diff-line.meta { color: var(--ink-faint); }
@@ -490,15 +596,16 @@ body::before {
 
 .docwrap { margin-bottom: 26px; }
 .docmeta { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
-.docpath { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); }
+.docpath { font-family: var(--mono); font-size: 11.5px; color: var(--ink-faint); word-break: break-all; }
 
 /* The document itself — reads like a manuscript, not a file. */
 .doc {
   background: var(--paper-2);
   border: 1px solid var(--rule);
-  border-radius: 12px;
-  padding: 40px 48px;
-  max-width: 720px;
+  border-left: 3px solid var(--vermilion);
+  border-radius: 4px 12px 12px 4px;
+  padding: 40px 56px;
+  max-width: none;
   box-shadow: var(--shadow-md);
   color: var(--ink);
   font-family: var(--sans);
@@ -539,7 +646,7 @@ body::before {
 }
 
 /* ---------- Assistant chat ---------- */
-.chat { display: flex; flex-direction: column; height: calc(100% - 56px); }
+.chat { display: flex; flex-direction: column; height: calc(100% - 50px); }
 
 .chatlog {
   flex: 1; overflow-y: auto;
@@ -803,8 +910,102 @@ body::before {
   .tree-folder__chevron, .tree-folder--top::before { transition: none; }
 }
 
-.post-image { max-width: 100%; height: auto; border-radius: 8px; margin: 8px 0; }
-.doc img { max-width: 100%; height: auto; border-radius: 8px; }
+/* Reading-view images: controlled full-bleed banners. object-fit:cover crops
+   any baked-in dark letterbox bands so there's no dead space, and max-height
+   keeps a tall image from dominating the column. */
+.post-image,
+.doc img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: cover;
+  object-position: center;
+  border-radius: 8px;
+  margin: 8px 0;
+  background: var(--rule-soft);
+}
+
+/* ---------- Responsive: stack below the desk width ---------- */
+@media (max-width: 760px) {
+  .layout { flex-direction: column; height: auto; min-height: 100vh; }
+  .sidebar {
+    width: 100%; flex-shrink: 1;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    box-shadow: none;
+  }
+  .sidebar::after { width: 100%; height: 3px; top: auto; bottom: 0; }
+  .colophon { margin-top: 18px; }
+
+  /* proposals & files: list stacks above the detail pane */
+  .proposals { flex-direction: column; height: auto; }
+  .list {
+    width: 100%; flex-shrink: 1;
+    border-right: none; border-bottom: 1px solid var(--rule);
+    max-height: 40vh;
+  }
+  .detail { padding: 22px 18px; }
+  .reviewbar { margin: 0 -18px 16px; padding: 12px 18px 12px; }
+
+  .tabs { padding: 14px 16px 0; }
+  .webhookbar, .uploadbar { flex-wrap: wrap; padding: 12px 16px; }
+  .chatlog { padding: 22px 18px 18px; }
+  .chatbox { padding: 14px 18px 20px; }
+  .doc { padding: 26px 20px; }
+  .notice--bar { padding: 0 16px; }
+}
+
+/* ---------- Confirm modal (letterpress) ---------- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 1000;
+  display: grid; place-items: center; padding: 24px;
+  background: rgba(31,27,22,.42);
+  backdrop-filter: blur(2px);
+  animation: modal-fade .14s ease both;
+}
+.modal-card {
+  position: relative;
+  width: min(420px, 100%);
+  background: var(--paper-2);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--vermilion);
+  border-radius: 10px;
+  box-shadow: var(--shadow-md);
+  padding: 26px 28px 22px;
+  animation: modal-rise .2s cubic-bezier(.2,.7,.2,1) both;
+}
+.modal-stamp {
+  display: inline-block;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em;
+  color: var(--vermilion); border: 1.5px solid var(--vermilion);
+  padding: 4px 9px; border-radius: 4px;
+  transform: rotate(-2.5deg); margin-bottom: 14px;
+}
+.modal-title {
+  font-family: var(--serif); font-weight: 600;
+  font-size: 21px; letter-spacing: -.01em; line-height: 1.25;
+  color: var(--ink); margin: 0 0 10px;
+}
+.modal-body {
+  font-family: var(--sans); font-size: 14px; line-height: 1.6;
+  color: var(--ink-soft); margin: 0 0 22px;
+}
+.modal-body code {
+  font-family: var(--mono); font-size: .9em;
+  background: rgba(31,27,22,.06); padding: .1em .4em; border-radius: 4px;
+}
+.modal-actions { display: flex; justify-content: flex-end; gap: 10px; }
+.modal-actions .btn:not(.reject) {
+  background: var(--paper); color: var(--ink); border-color: var(--rule);
+}
+@keyframes modal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes modal-rise {
+  from { opacity: 0; transform: translateY(8px) scale(.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal-backdrop, .modal-card { animation: none; }
+}
 
 /* ---------- Login / account ---------- */
 .login { min-height: 100vh; display: grid; place-items: center; padding: 24px; }

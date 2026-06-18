@@ -4,6 +4,7 @@ import { ProposalList } from './components/ProposalList';
 import { FileBrowser } from './components/FileBrowser';
 import { AgentChat } from './components/AgentChat';
 import { Login } from './components/Login';
+import { ConfirmDialog, type ConfirmRequest } from './components/ConfirmDialog';
 
 export function App() {
   const [authStatus, setAuthStatus] = useState<'loading' | 'in' | 'out'>('loading');
@@ -17,10 +18,14 @@ export function App() {
   const [newId, setNewId] = useState('');
   const [newTemplate, setNewTemplate] = useState('content-calendar');
   const [createError, setCreateError] = useState<string | null>(null);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
 
   useEffect(() => {
-    api.auth.me()
-      .then((m) => { setMe({ email: m.email }); setAuthStatus('in'); })
+    api.auth.session()
+      .then((s) => {
+        if (s.authenticated) { setMe({ email: s.email }); setAuthStatus('in'); }
+        else setAuthStatus('out');
+      })
       .catch(() => setAuthStatus('out'));
   }, []);
 
@@ -42,8 +47,7 @@ export function App() {
     try { await api.auth.logout(); } finally { setAuthStatus('out'); setWs(null); setMe(null); }
   };
 
-  const deleteWorkspace = async (w: string) => {
-    if (!window.confirm(`Xóa workspace "${w}"?\nToàn bộ proposals và file sẽ bị xóa vĩnh viễn — không khôi phục được.`)) return;
+  const doDeleteWorkspace = async (w: string) => {
     setError(null);
     try {
       await api.deleteWorkspace(w);
@@ -52,6 +56,15 @@ export function App() {
     } catch (e) {
       if (!onAuthError(e)) setError(e instanceof Error ? e.message : String(e));
     }
+  };
+
+  const deleteWorkspace = (w: string) => {
+    setConfirm({
+      title: `Xóa workspace “${w}”?`,
+      body: <>Toàn bộ đề xuất và tài liệu sẽ bị xóa vĩnh viễn — <b>không khôi phục được</b>.</>,
+      confirmLabel: 'Xóa vĩnh viễn',
+      onConfirm: () => { void doDeleteWorkspace(w); },
+    });
   };
 
   const createWorkspace = async () => {
@@ -75,8 +88,8 @@ export function App() {
     return (
       <div className="login">
         <div className="login-card">
-          <span className="kicker">The Commons Review Desk</span>
-          <p className="login-lede">Loading…</p>
+          <span className="kicker">Bàn duyệt Commons</span>
+          <p className="login-lede">Đang tải…</p>
         </div>
       </div>
     );
@@ -87,7 +100,7 @@ export function App() {
     <div className="layout">
       <aside className="sidebar">
         <h1>Commons</h1>
-        <h2>Workspaces</h2>
+        <h2>Không gian làm việc</h2>
         <div className="ws-list">
           {workspaces.map((w) => (
             <div key={w} className="ws-row">
@@ -101,8 +114,8 @@ export function App() {
             </div>
           ))}
         </div>
-        {error && <p className="empty" style={{ color: 'var(--vermilion)' }}>{error}</p>}
-        {!creating && <button className="ws newbtn" onClick={() => setCreating(true)}>+ New workspace</button>}
+        {error && <p className="notice notice--error" role="alert">{error}</p>}
+        {!creating && <button className="ws newbtn" onClick={() => setCreating(true)}>+ Tạo workspace</button>}
         {creating && (
           <div className="newform">
             <input
@@ -113,23 +126,23 @@ export function App() {
               autoFocus
             />
             <select className="newinput" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)}>
-              <option value="content-calendar">Content calendar</option>
-              <option value="blank">Blank</option>
+              <option value="content-calendar">Lịch nội dung</option>
+              <option value="blank">Trống</option>
             </select>
             <div className="newactions">
-              <button className="btn approve" disabled={!newId.trim()} onClick={createWorkspace}>Create</button>
-              <button className="btn" onClick={() => { setCreating(false); setCreateError(null); }}>Cancel</button>
+              <button className="btn approve" disabled={!newId.trim()} onClick={createWorkspace}>Tạo</button>
+              <button className="btn" onClick={() => { setCreating(false); setCreateError(null); }}>Hủy</button>
             </div>
-            {createError && <p className="empty" style={{ color: 'var(--vermilion)' }}>{createError}</p>}
+            {createError && <p className="notice notice--error" role="alert">{createError}</p>}
           </div>
         )}
         <div className="colophon">
           <span className="colophon-rule" />
-          <p>Agents propose · humans merge.<br />Branch <b>main</b> is the approved record.</p>
+          <p>Agent đề xuất · con người duyệt.<br />Nhánh <b>main</b> là bản đã được phê duyệt.</p>
           {me && (
             <p className="account">
               {me.email}
-              <button className="ws-del" title="Sign out" aria-label="Sign out" onClick={logout}>⎋</button>
+              <button className="ws-del" title="Đăng xuất" aria-label="Đăng xuất" onClick={logout}>⎋</button>
             </p>
           )}
         </div>
@@ -137,10 +150,10 @@ export function App() {
       <main className="main">
         {ws ? (
           <>
-            <div className="tabs">
-              <button className={tab === 'assistant' ? 'tab active' : 'tab'} onClick={() => setTab('assistant')}>Assistant</button>
-              <button className={tab === 'proposals' ? 'tab active' : 'tab'} onClick={() => setTab('proposals')}>Proposals</button>
-              <button className={tab === 'files' ? 'tab active' : 'tab'} onClick={() => setTab('files')}>Files</button>
+            <div className="tabs" role="tablist" aria-label="Khu vực workspace">
+              <button role="tab" aria-selected={tab === 'assistant'} className={tab === 'assistant' ? 'tab active' : 'tab'} onClick={() => setTab('assistant')}>Trợ lý</button>
+              <button role="tab" aria-selected={tab === 'proposals'} className={tab === 'proposals' ? 'tab active' : 'tab'} onClick={() => setTab('proposals')}>Đề xuất</button>
+              <button role="tab" aria-selected={tab === 'files'} className={tab === 'files' ? 'tab active' : 'tab'} onClick={() => setTab('files')}>Tài liệu</button>
             </div>
             {tab === 'assistant'
               ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
@@ -151,23 +164,24 @@ export function App() {
         ) : (
           <div className="frontpage">
             <div className="frontpage-inner">
-              <span className="kicker">The Commons Review Desk</span>
-              <h2 className="frontpage-head">Nothing on the desk<span className="period">.</span></h2>
+              <span className="kicker">Bàn duyệt Commons</span>
+              <h2 className="frontpage-head">Bàn làm việc trống<span className="period">.</span></h2>
               <div className="dblrule"><span /><span /></div>
               <p className="frontpage-lede">
-                Pick a workspace from the masthead to read its proposals, browse files,
-                or hand work to the assistant. Every change waits here for your approval —
-                nothing reaches <b>main</b> until you merge it.
+                Chọn một workspace ở cột bên trái để đọc đề xuất, xem tài liệu,
+                hoặc giao việc cho trợ lý. Mọi thay đổi đều chờ bạn phê duyệt tại đây —
+                không gì chạm tới <b>main</b> cho đến khi bạn merge.
               </p>
               <div className="frontpage-cues">
-                <span><i className="dot indigo" /> Proposals await review</span>
-                <span><i className="dot forest" /> You hold the merge</span>
-                <span><i className="dot amber" /> Agents never touch main</span>
+                <span><i className="dot indigo" /> Đề xuất đang chờ duyệt</span>
+                <span><i className="dot forest" /> Bạn nắm quyền merge</span>
+                <span><i className="dot amber" /> Agent không bao giờ chạm main</span>
               </div>
             </div>
           </div>
         )}
       </main>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

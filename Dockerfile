@@ -24,6 +24,10 @@ COPY --from=build /app/src ./src
 COPY --from=build /app/scripts ./scripts
 COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+# COMMONS_ROOT (/data) is a named volume. Create it owned by `node` so a fresh
+# volume inherits node ownership — otherwise it defaults to root:root and the
+# non-root runtime can't create commons.db (SQLITE_CANTOPEN).
+RUN mkdir -p /data && chown node:node /data
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \

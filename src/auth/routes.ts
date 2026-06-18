@@ -12,6 +12,8 @@ export interface AuthDeps {
   mailer: Mailer;
   /** When true, any valid email may sign in — the invite allowlist is bypassed. */
   openSignup?: boolean;
+  /** Called once when a brand-new tenant is created, to seed its demo content. */
+  seedTenant?: (tenantId: string) => Promise<void>;
 }
 
 const COOKIE = 'commons_session';
@@ -60,6 +62,15 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       const tenantId = generateId('t');
       deps.db.createTenant(tenantId);
       user = deps.db.createUser(email, tenantId);
+      // Seed demo content so the first screen is populated. A seed failure must
+      // never block sign-in — log and continue with an empty workspace.
+      if (deps.seedTenant) {
+        try {
+          await deps.seedTenant(tenantId);
+        } catch (e) {
+          req.log.error({ err: e, tenantId }, 'failed to seed onboarding workspace');
+        }
+      }
     }
     deps.db.markInviteAccepted(email);
 

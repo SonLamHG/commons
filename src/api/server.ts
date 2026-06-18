@@ -77,10 +77,12 @@ export interface ApiDeps {
   agentRunner?: AgentRunner;
   /** When true, bypass the invite allowlist — any valid email may sign in. */
   openSignup?: boolean;
+  /** Called once per new tenant to seed its demo content. */
+  seedTenant?: (tenantId: string) => Promise<void>;
 }
 
 export function buildApi(deps: ApiDeps): FastifyInstance {
-  const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner, openSignup } = deps;
+  const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner, openSignup, seedTenant } = deps;
   const app = Fastify({ forceCloseConnections: true, trustProxy: true });
   registerSecurityHeaders(app);
   registerCors(app, appUrl);
@@ -88,7 +90,7 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
   // --- auth: mount routes, then gate everything else under /api ---
-  registerAuthRoutes(app, { db, secret: authSecret, appUrl, mailer, openSignup });
+  registerAuthRoutes(app, { db, secret: authSecret, appUrl, mailer, openSignup, seedTenant });
   const requireAuth = makeRequireAuth({ db, secret: authSecret, appUrl, mailer });
   app.addHook('preHandler', async (req, reply) => {
     if (!req.url.startsWith('/api/')) return;        // static / SPA

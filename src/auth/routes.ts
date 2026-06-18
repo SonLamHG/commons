@@ -10,6 +10,8 @@ export interface AuthDeps {
   secret: string;
   appUrl: string;
   mailer: Mailer;
+  /** When true, any valid email may sign in — the invite allowlist is bypassed. */
+  openSignup?: boolean;
 }
 
 const COOKIE = 'commons_session';
@@ -30,11 +32,13 @@ export function makeRequireAuth(deps: AuthDeps) {
 /** Register the magic-link auth routes on `app`. */
 export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const secure = deps.appUrl.startsWith('https');
+  // Allow sign-in when open signup is on, otherwise require an invite.
+  const allowed = (email: string) => deps.openSignup === true || deps.db.isInvited(email);
 
   app.post('/api/auth/request', async (req, reply) => {
     const { email } = (req.body ?? {}) as { email?: string };
     if (!email || !email.includes('@')) return reply.code(400).send({ error: 'valid email required' });
-    if (deps.db.isInvited(email)) {
+    if (allowed(email)) {
       const token = createMagicToken(email, deps.secret);
       const link = `${deps.appUrl}/api/auth/callback?token=${encodeURIComponent(token)}`;
       await deps.mailer.send(
@@ -49,7 +53,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   app.get('/api/auth/callback', async (req, reply) => {
     const { token } = req.query as { token?: string };
     const email = token ? readMagicToken(token, deps.secret) : null;
-    if (!email || !deps.db.isInvited(email)) return reply.code(401).send({ error: 'invalid or expired link' });
+    if (!email || !allowed(email)) return reply.code(401).send({ error: 'invalid or expired link' });
 
     let user = deps.db.getUserByEmail(email);
     if (!user) {

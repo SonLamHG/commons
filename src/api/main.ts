@@ -37,6 +37,7 @@ const app = buildApi({
   appUrl,
   mailer: mailerFromEnv(),
   agentRunner: createClaudeRunner(),
+  openSignup: process.env.COMMONS_OPEN_SIGNUP === 'true',
 });
 
 const dist = join(process.cwd(), 'web', 'dist');

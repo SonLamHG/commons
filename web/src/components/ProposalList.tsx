@@ -24,8 +24,8 @@ const GROUPS: { key: string; label: string; has: (s: string) => boolean }[] = [
   { key: 'resolved', label: 'Đã xử lý', has: (s) => s === 'merged' || s === 'discarded' },
 ];
 
-export function ProposalList({ ws, proposals, onChanged }: {
-  ws: string; proposals: Proposal[]; onChanged: () => void;
+export function ProposalList({ ws, proposals, loading = false, onChanged }: {
+  ws: string; proposals: Proposal[]; loading?: boolean; onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const selectedProposal = proposals.find((p) => p.id === selected) ?? null;
@@ -38,7 +38,18 @@ export function ProposalList({ ws, proposals, onChanged }: {
     <div className="proposals">
       <div className="list">
         <h2>Đề xuất</h2>
-        {proposals.length === 0 && <p className="empty">Chưa có đề xuất nào.</p>}
+        {loading && proposals.length === 0 && (
+          <div className="sk-props" aria-busy="true" aria-label="Đang tải đề xuất">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="sk-prop">
+                <div className="sk-line" style={{ width: '38%', height: 16 }} />
+                <div className="sk-line" style={{ width: '72%' }} />
+                <div className="sk-line" style={{ width: '30%' }} />
+              </div>
+            ))}
+          </div>
+        )}
+        {!loading && proposals.length === 0 && <p className="empty">Chưa có đề xuất nào.</p>}
         {GROUPS.map((g) => {
           const items = byNewest.filter((p) => g.has(p.status));
           if (items.length === 0) return null;

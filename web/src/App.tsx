@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, UnauthorizedError, type Proposal } from './api';
+import { api, UnauthorizedError, friendlyError, type Proposal } from './api';
 import { ProposalList } from './components/ProposalList';
 import { FileBrowser } from './components/FileBrowser';
 import { AgentChat } from './components/AgentChat';
@@ -19,6 +19,8 @@ export function App() {
   const [newTemplate, setNewTemplate] = useState('content-calendar');
   const [createError, setCreateError] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [wsLoading, setWsLoading] = useState(false);
+  const [proposalsLoading, setProposalsLoading] = useState(false);
 
   useEffect(() => {
     api.auth.session()
@@ -34,13 +36,19 @@ export function App() {
     return false;
   };
 
-  const loadWorkspaces = () =>
-    api.workspaces().then(setWorkspaces).catch((e) => {
-      if (!onAuthError(e)) setError(e instanceof Error ? e.message : String(e));
-    });
+  const loadWorkspaces = () => {
+    setWsLoading(true);
+    return api.workspaces().then(setWorkspaces)
+      .catch((e) => { if (!onAuthError(e)) setError(friendlyError(e)); })
+      .finally(() => setWsLoading(false));
+  };
   useEffect(() => { if (authStatus === 'in') loadWorkspaces(); }, [authStatus]);
 
-  const loadProposals = (w: string) => api.proposals(w).then(setProposals).catch(onAuthError);
+  const loadProposals = (w: string) => {
+    setProposalsLoading(true);
+    return api.proposals(w).then(setProposals).catch(onAuthError)
+      .finally(() => setProposalsLoading(false));
+  };
   useEffect(() => { if (ws) { setTab('assistant'); loadProposals(ws); } }, [ws]);
 
   const logout = async () => {
@@ -54,7 +62,7 @@ export function App() {
       if (ws === w) setWs(null);
       await loadWorkspaces();
     } catch (e) {
-      if (!onAuthError(e)) setError(e instanceof Error ? e.message : String(e));
+      if (!onAuthError(e)) setError(friendlyError(e));
     }
   };
 
@@ -77,20 +85,27 @@ export function App() {
       setCreating(false); setNewId('');
     } catch (e) {
       if (onAuthError(e)) return;
-      const raw = e instanceof Error ? e.message : String(e);
-      let msg = raw;
-      try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
-      setCreateError(msg);
+      setCreateError(friendlyError(e));
     }
   };
 
   if (authStatus === 'loading') {
     return (
-      <div className="login">
-        <div className="login-card">
-          <span className="kicker">Bàn duyệt Commons</span>
-          <p className="login-lede">Đang tải…</p>
-        </div>
+      <div className="layout" aria-busy="true" aria-label="Đang tải">
+        <aside className="sidebar">
+          <h1>Commons</h1>
+          <h2>Không gian làm việc</h2>
+          <div className="ws-list">
+            {[68, 52, 60].map((w, i) => (
+              <div key={i} className="sk-line" style={{ width: `${w}%`, margin: '14px 2px' }} />
+            ))}
+          </div>
+        </aside>
+        <main className="main">
+          <div className="frontpage">
+            <div className="sk-spinner" />
+          </div>
+        </main>
       </div>
     );
   }
@@ -102,6 +117,10 @@ export function App() {
         <h1>Commons</h1>
         <h2>Không gian làm việc</h2>
         <div className="ws-list">
+          {wsLoading && workspaces.length === 0 &&
+            [70, 55, 62, 48].map((w, i) => (
+              <div key={i} className="sk-line" style={{ width: `${w}%`, margin: '14px 2px' }} />
+            ))}
           {workspaces.map((w) => (
             <div key={w} className="ws-row">
               <button className={w === ws ? 'ws active' : 'ws'} onClick={() => setWs(w)}>{w}</button>
@@ -158,7 +177,7 @@ export function App() {
             {tab === 'assistant'
               ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
               : tab === 'proposals'
-                ? <ProposalList ws={ws} proposals={proposals} onChanged={() => loadProposals(ws)} />
+                ? <ProposalList ws={ws} proposals={proposals} loading={proposalsLoading} onChanged={() => loadProposals(ws)} />
                 : <FileBrowser ws={ws} />}
           </>
         ) : (

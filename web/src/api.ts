@@ -61,9 +61,10 @@ export const api = {
     ws: string,
     prompt: string,
     onEvent: (e: { type: string; text?: string; name?: string; result?: string; message?: string }) => void,
+    signal?: AbortSignal,
   ): Promise<void> => {
     const res = await fetch(`/api/workspaces/${ws}/agent`, {
-      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt }),
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ prompt }), signal,
     });
     if (!res.ok || !res.body) throw new Error(await res.text());
     const reader = res.body.getReader();
@@ -94,3 +95,25 @@ export const api = {
 
 export const isImage = (path: string): boolean =>
   /\.(png|jpe?g|webp|gif)$/i.test(path);
+
+/**
+ * Turn any thrown value into a human-readable Vietnamese message for the UI.
+ * Handles: expired sessions, network failures (fetch throws TypeError), server
+ * bodies that are JSON `{error|message}`, and HTML error pages (500 shells) —
+ * which should never leak raw markup to the user.
+ */
+export function friendlyError(e: unknown): string {
+  if (e instanceof UnauthorizedError) return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+  // fetch() rejects with a TypeError when the network is down / server unreachable.
+  if (e instanceof TypeError) return 'Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.';
+  const raw = (e instanceof Error ? e.message : String(e)).trim();
+  if (!raw) return 'Đã xảy ra lỗi không xác định.';
+  // server JSON error body
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === 'object') return parsed.error ?? parsed.message ?? 'Đã xảy ra lỗi.';
+  } catch { /* not JSON */ }
+  // an HTML error page (e.g. a proxy 500/502) — don't dump markup at the user
+  if (/^\s*<(!doctype|html)/i.test(raw)) return 'Máy chủ gặp sự cố. Vui lòng thử lại sau.';
+  return raw;
+}

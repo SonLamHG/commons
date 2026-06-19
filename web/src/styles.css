@@ -699,7 +699,14 @@ body::before {
   line-height: 1.5; color: var(--paper); margin: 0;
 }
 
-/* Tool step */
+/* Tool steps — consecutive runs fold into one block hung off a hairline guide */
+.chatmsg.steps {
+  margin: 2px 0 14px; padding-left: 11px;
+  border-left: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.chatmsg.steps .step-row { display: flex; align-items: center; gap: 10px; }
+/* live + single-step rows */
 .chatmsg.step { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
 .step-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -733,6 +740,18 @@ body::before {
   padding: 4px 9px; border-radius: 4px; line-height: 1.4; margin-top: 1px;
 }
 .chatmsg.done-msg p { font-family: var(--sans); font-size: 14px; color: #1a4a2e; margin: 0; line-height: 1.5; }
+
+/* Cancelled — neutral, not an error */
+.chatmsg.cancelled-msg {
+  display: flex; align-items: center; gap: 10px;
+  margin: 4px 0 18px; padding: 9px 14px;
+  background: var(--paper-2); border: 1px solid var(--rule);
+  border-radius: 8px;
+}
+.chatmsg.cancelled-msg .step-dot { background: var(--slate); }
+.chatmsg.cancelled-msg p {
+  font-family: var(--sans); font-size: 13.5px; color: var(--ink-soft); margin: 0;
+}
 
 /* Error */
 .chatmsg.error-msg {
@@ -936,14 +955,18 @@ body::before {
   .sidebar::after { width: 100%; height: 3px; top: auto; bottom: 0; }
   .colophon { margin-top: 18px; }
 
-  /* proposals & files: list stacks above the detail pane */
+  /* proposals & files: list stacks above the detail pane. The whole page is the
+     single scroll container on mobile — panes grow to content instead of each
+     owning a nested scrollport (which trapped the user's swipe). */
   .proposals { flex-direction: column; height: auto; }
   .list {
     width: 100%; flex-shrink: 1;
     border-right: none; border-bottom: 1px solid var(--rule);
-    max-height: 40vh;
+    overflow: visible;
   }
-  .detail { padding: 22px 18px; }
+  .detail { padding: 22px 18px; overflow: visible; }
+  /* chat keeps its own input pinned, but the log no longer fights the page scroll */
+  .chat { height: auto; min-height: calc(100vh - 120px); }
   .reviewbar { margin: 0 -18px 16px; padding: 12px 18px 12px; }
 
   .tabs { padding: 14px 16px 0; }
@@ -1005,6 +1028,37 @@ body::before {
 }
 @media (prefers-reduced-motion: reduce) {
   .modal-backdrop, .modal-card { animation: none; }
+}
+
+/* ---------- Skeletons (loading placeholders) ----------
+   Warm paper tones with a slow ink-wash shimmer, so a load reads as the page
+   settling onto the desk rather than a generic grey spinner. */
+.sk-line {
+  height: 12px; border-radius: 4px;
+  background: linear-gradient(90deg, var(--rule-soft) 0%, rgba(31,27,22,.09) 50%, var(--rule-soft) 100%);
+  background-size: 200% 100%;
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+.sk-props { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.sk-prop {
+  display: flex; flex-direction: column; gap: 8px;
+  background: var(--paper-2); border: 1px solid var(--rule);
+  border-radius: 9px; padding: 14px 13px;
+}
+.sk-spinner {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2.5px solid var(--rule);
+  border-top-color: var(--vermilion);
+  animation: sk-spin .8s linear infinite;
+}
+@keyframes sk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+@keyframes sk-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .sk-line { animation: none; }
+  .sk-spinner { animation-duration: 1.6s; }
 }
 
 /* ---------- Login / account ---------- */

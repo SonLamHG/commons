@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '../api';
+import { api, friendlyError } from '../api';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -11,7 +11,7 @@ export function Login() {
     e.preventDefault();
     setBusy(true); setError(null);
     try { await api.auth.request(email.trim()); setSent(true); }
-    catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    catch (err) { setError(friendlyError(err)); }
     finally { setBusy(false); }
   };
 

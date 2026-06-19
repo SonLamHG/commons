@@ -58,14 +58,17 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
     setPrompt(''); setBusy(true);
     const ctrl = new AbortController();
     abortRef.current = ctrl;
+    // Only navigate to Proposals if the agent actually finished a proposal
+    // (a `done` event). On error/empty/cancel we stay here so the user sees why.
+    let succeeded = false;
     try {
       await api.agentStream(ws, p, (e) => {
         if (e.type === 'text' && e.text) setLines((l) => [...l, { kind: 'text', text: e.text! }]);
         else if (e.type === 'tool' && e.name) setLines((l) => [...l, { kind: 'tool', text: TOOL_LABEL[e.name!] ?? e.name! }]);
-        else if (e.type === 'done') setLines((l) => [...l, { kind: 'done', text: 'Đã tạo đề xuất — mở tab Proposals để duyệt.' }]);
+        else if (e.type === 'done') { succeeded = true; setLines((l) => [...l, { kind: 'done', text: 'Đã tạo đề xuất — mở tab Proposals để duyệt.' }]); }
         else if (e.type === 'error') setLines((l) => [...l, { kind: 'error', text: e.message ?? 'lỗi' }]);
       }, ctrl.signal);
-      onDone();
+      if (succeeded) onDone();
     } catch (err) {
       // A user-initiated cancel is not an error — show a neutral line instead.
       if (ctrl.signal.aborted || (err instanceof DOMException && err.name === 'AbortError')) {

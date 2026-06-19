@@ -278,6 +278,13 @@ body::before {
 .tab.active { color: var(--ink); border-bottom-color: var(--vermilion); }
 
 .proposals { display: flex; height: calc(100% - 50px); }
+
+/* Files tab wraps .proposals under two toolbars, so .proposals can't size off
+   .main directly. Give the pane a definite height + column flow so the folder
+   list and the document each own a scrollport — the folder tree stays put
+   instead of drifting off-screen as you scroll a long document. */
+.filespane { height: calc(100% - 50px); display: flex; flex-direction: column; }
+.filespane .proposals { flex: 1; min-height: 0; height: auto; }
 .list {
   width: 340px; flex-shrink: 0;
   border-right: 1px solid var(--rule);
@@ -958,6 +965,7 @@ body::before {
   /* proposals & files: list stacks above the detail pane. The whole page is the
      single scroll container on mobile — panes grow to content instead of each
      owning a nested scrollport (which trapped the user's swipe). */
+  .filespane { height: auto; }
   .proposals { flex-direction: column; height: auto; }
   .list {
     width: 100%; flex-shrink: 1;

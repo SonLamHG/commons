@@ -110,7 +110,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   const pub = selected ? published[selected] : undefined;
 
   return (
-    <div>
+    <div className="filespane">
       <div className="webhookbar">
         <label>Webhook đăng bài</label>
         <input className="newinput" placeholder="https://hook.make.com/... hoặc URL webhook Discord"

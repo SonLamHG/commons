@@ -121,6 +121,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   const tree = useMemo(() => buildTree(files ?? []), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
+  const pubCount = Object.keys(published).length;
 
   return (
     <div className="filespane">
@@ -155,17 +156,23 @@ export function FileBrowser({ ws }: { ws: string }) {
       {uploadMsg && <p className={`notice notice--${uploadMsg.kind} notice--bar`} role="status">{uploadMsg.text}</p>}
       <div className="proposals">
         <div className="list">
-          <h2>Tài liệu</h2>
+          <h2>Mục lục</h2>
           {error && <p className="notice notice--error" role="alert">{error}</p>}
           {files === null && <p className="empty">Đang tải…</p>}
           {files !== null && files.length === 0 && <p className="empty">Chưa có tài liệu nào.</p>}
           {files !== null && files.length > 0 && (
-            <FileTree
-              nodes={tree}
-              selected={selected}
-              onSelect={setSelected}
-              published={published}
-            />
+            <>
+              <FileTree
+                nodes={tree}
+                selected={selected}
+                onSelect={setSelected}
+                published={published}
+              />
+              <p className="list__colophon">
+                {files.filter((f) => f.type !== 'dir').length} tài liệu
+                {pubCount > 0 && <> · {pubCount} đã đăng</>}
+              </p>
+            </>
           )}
         </div>
         <div className="detail">

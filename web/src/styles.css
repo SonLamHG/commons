@@ -878,65 +878,97 @@ body::before {
 .tree-folder--top[data-accent="published"]::before  { background: var(--forest); }
 .tree-folder--top[data-accent="assets"]::before     { background: var(--slate); }
 .tree-folder--top .tree-folder__name {
-  font-family: var(--serif); font-weight: 600; font-size: 15px;
-  letter-spacing: -.01em; color: var(--ink);
+  font-family: var(--serif); font-weight: 600; font-size: 12px;
+  text-transform: uppercase; letter-spacing: .07em; color: var(--ink);
 }
 
-/* ---- nested children: hang off a hairline guide ---- */
+/* ---- nested children: hang off a hairline margin rule, tinted by section ---- */
 .tree-children {
-  margin-left: 17px; padding-left: 13px;
-  border-left: 1px solid var(--rule);
-  display: flex; flex-direction: column; gap: 2px;
+  position: relative;
+  margin-left: 17px; padding-left: 18px;
+  display: flex; flex-direction: column; gap: 1px;
   animation: tree-open .22s cubic-bezier(.2,.7,.2,1) both;
 }
+/* the margin rule the files hang from — a faint guide, fading toward the foot */
+.tree-children::before {
+  content: ""; position: absolute; left: 0; top: 2px; bottom: 6px;
+  width: 1px; background: var(--rule);
+}
+.tree-group--top[data-accent="reference"] > .tree-children::before { background: linear-gradient(var(--indigo), transparent 92%); opacity: .35; }
+.tree-group--top[data-accent="drafts"]    > .tree-children::before { background: linear-gradient(var(--amber),  transparent 92%); opacity: .4;  }
+.tree-group--top[data-accent="published"] > .tree-children::before { background: linear-gradient(var(--forest), transparent 92%); opacity: .35; }
+.tree-group--top[data-accent="assets"]    > .tree-children::before { background: linear-gradient(var(--slate),  transparent 92%); opacity: .35; }
 @keyframes tree-open {
   from { opacity: 0; transform: translateY(-4px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- file row: a mono ledger line ---- */
+/* ---- file row: an index line — serif stem, mono extension, leader dots ---- */
 .tree-file {
   position: relative;
-  display: flex; align-items: center; gap: 9px;
+  display: flex; align-items: baseline;
   width: 100%; text-align: left;
   background: none; border: none; cursor: pointer;
-  padding: 6px 11px; border-radius: 6px;
+  padding: 6px 10px; border-radius: 7px;
   color: var(--ink-soft);
   transition: background .12s, color .12s;
 }
+/* a small tick joining each entry to the margin rule */
 .tree-file::before {
-  content: ""; flex-shrink: 0;
-  width: 6px; height: 1px; background: var(--rule);
-  transition: background .12s, width .12s;
+  content: ""; position: absolute; left: -18px; top: 13px;
+  width: 12px; height: 1px; background: var(--rule);
+  transition: background .12s;
 }
 .tree-file__name {
-  flex: 1;
-  font-family: var(--mono); font-size: 12.5px; font-weight: 400;
-  letter-spacing: -.01em;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  flex: 0 0 auto;
+  font-family: var(--serif); font-size: 13.5px; font-weight: 400;
+  letter-spacing: -.003em; color: var(--ink-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 168px;
 }
-.tree-file:hover { background: rgba(31,27,22,.05); color: var(--ink); }
-.tree-file:hover::before { background: var(--ink-faint); }
-.tree-file:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
-.tree-file.is-active {
-  background: var(--ink); color: var(--paper);
-  box-shadow: var(--shadow-sm);
+.tree-file__ext {
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint); margin-left: 1px;
 }
-.tree-file.is-active::before { width: 9px; height: 2px; background: var(--vermilion); }
-.tree-file.is-active .tree-file__name { color: var(--paper); }
+.tree-file__leader {
+  flex: 1 1 auto; align-self: center;
+  border-bottom: 1px dotted var(--rule);
+  margin: 0 8px; min-width: 10px; transform: translateY(-2px);
+}
+.tree-file__pub {
+  flex: 0 0 auto;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--mono); font-size: 8px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--forest);
+}
+.tree-file__dot { width: 5px; height: 5px; border-radius: 50%; background: var(--forest); }
 
-/* published file — a small letterpress tag */
-.tree-tag {
-  flex-shrink: 0;
-  font-family: var(--sans); font-size: 8.5px; font-weight: 700;
-  text-transform: uppercase; letter-spacing: .12em;
-  color: var(--forest); border: 1px solid var(--forest);
-  padding: 1px 5px; border-radius: 3px; line-height: 1.45;
+.tree-file:hover { background: rgba(31,27,22,.04); }
+.tree-file:hover .tree-file__name { color: var(--ink); }
+.tree-file:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+/* selected: a raised paper plate with a keyline inheriting the section accent */
+.tree-file.is-active {
+  background: #fffdf8; box-shadow: var(--shadow-md);
 }
-.tree-file.is-active .tree-tag { color: var(--paper); border-color: rgba(246,241,231,.55); }
+.tree-file.is-active .tree-file__name { color: var(--ink); font-weight: 500; }
+.tree-file.is-active::before {
+  left: 0; top: 7px; bottom: 7px; width: 2.5px; height: auto;
+  border-radius: 0 3px 3px 0; background: var(--ink);
+}
+.tree-group--top[data-accent="reference"] .tree-file.is-active::before { background: var(--indigo); }
+.tree-group--top[data-accent="drafts"]    .tree-file.is-active::before { background: var(--amber); }
+.tree-group--top[data-accent="published"] .tree-file.is-active::before { background: var(--forest); }
+.tree-group--top[data-accent="assets"]    .tree-file.is-active::before { background: var(--slate); }
 
 .tree-empty {
   margin: 2px 0; padding: 4px 11px;
+  font-family: var(--serif); font-style: italic; font-size: 12px;
+  color: var(--ink-faint);
+}
+
+/* colophon — a quiet tally at the foot of the index */
+.list__colophon {
+  margin: 14px 2px 0; padding-top: 11px;
+  border-top: 1px solid var(--rule);
   font-family: var(--serif); font-style: italic; font-size: 12px;
   color: var(--ink-faint);
 }

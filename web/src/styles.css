@@ -680,8 +680,9 @@ body::before {
   box-shadow: none; padding: 0; max-width: none;
   font-size: 16.5px; line-height: 1.78;
 }
-/* drop-cap on the first paragraph — Fraunces, dropped two lines */
-.doc-leaf .doc > p:first-of-type::first-letter {
+/* drop-cap on the article's lead paragraph (the one after the title), so it
+   never lands on a leading image/callout. Fraunces, dropped two lines. */
+.doc-leaf .doc > h1:first-of-type + p::first-letter {
   font-family: var(--serif); font-weight: 600;
   float: left; font-size: 3.3em; line-height: .78;
   padding: 6px 10px 0 0; color: var(--ink);
@@ -963,38 +964,33 @@ body::before {
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ---- file row: an index line — serif stem, mono extension, leader dots ---- */
+/* ---- file row: serif stem, faint mono extension, pub mark on the right ---- */
 .tree-file {
   position: relative;
-  display: flex; align-items: baseline;
+  display: flex; align-items: baseline; gap: 8px;
   width: 100%; text-align: left;
   background: none; border: none; cursor: pointer;
   padding: 6px 10px; border-radius: 7px;
   color: var(--ink-soft);
-  transition: background .12s, color .12s;
+  transition: background .12s, color .12s, box-shadow .12s;
 }
-/* a small tick joining each entry to the margin rule */
-.tree-file::before {
+/* a small join tick — only for files nested under a folder's margin rule */
+.tree-children > .tree-file::before {
   content: ""; position: absolute; left: -18px; top: 13px;
   width: 12px; height: 1px; background: var(--rule);
   transition: background .12s;
 }
 .tree-file__name {
-  flex: 0 0 auto;
+  flex: 0 1 auto; min-width: 0;
   font-family: var(--serif); font-size: 13.5px; font-weight: 400;
   letter-spacing: -.003em; color: var(--ink-soft);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 168px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .tree-file__ext {
-  font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint); margin-left: 1px;
-}
-.tree-file__leader {
-  flex: 1 1 auto; align-self: center;
-  border-bottom: 1px dotted var(--rule);
-  margin: 0 8px; min-width: 10px; transform: translateY(-2px);
+  font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint);
 }
 .tree-file__pub {
-  flex: 0 0 auto;
+  flex: 0 0 auto; margin-left: auto;
   display: inline-flex; align-items: center; gap: 5px;
   font-family: var(--mono); font-size: 8px; font-weight: 500;
   text-transform: uppercase; letter-spacing: .14em; color: var(--forest);
@@ -1005,19 +1001,16 @@ body::before {
 .tree-file:hover .tree-file__name { color: var(--ink); }
 .tree-file:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
 
-/* selected: a raised paper plate with a keyline inheriting the section accent */
+/* selected: a raised paper plate with a keyline inheriting the section accent.
+   The keyline is an inset shadow so it works at any depth (incl. root files). */
 .tree-file.is-active {
-  background: #fffdf8; box-shadow: var(--shadow-md);
+  background: #fffdf8;
+  box-shadow: inset 3px 0 0 var(--ink), var(--shadow-md);
 }
 .tree-file.is-active .tree-file__name { color: var(--ink); font-weight: 500; }
-.tree-file.is-active::before {
-  left: 0; top: 7px; bottom: 7px; width: 2.5px; height: auto;
-  border-radius: 0 3px 3px 0; background: var(--ink);
-}
-.tree-group--top[data-accent="reference"] .tree-file.is-active::before { background: var(--indigo); }
-.tree-group--top[data-accent="drafts"]    .tree-file.is-active::before { background: var(--amber); }
-.tree-group--top[data-accent="published"] .tree-file.is-active::before { background: var(--forest); }
-.tree-group--top[data-accent="assets"]    .tree-file.is-active::before { background: var(--slate); }
+.tree-group--top[data-accent="reference"] .tree-file.is-active { box-shadow: inset 3px 0 0 var(--indigo), var(--shadow-md); }
+.tree-group--top[data-accent="drafts"]    .tree-file.is-active { box-shadow: inset 3px 0 0 var(--amber),  var(--shadow-md); }
+.tree-group--top[data-accent="published"] .tree-file.is-active { box-shadow: inset 3px 0 0 var(--forest), var(--shadow-md); }
 
 .tree-empty {
   margin: 2px 0; padding: 4px 11px;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildTree, folderLabel } from './tree';
+import { buildTree, folderLabel, orderRoots } from './tree';
 
 describe('buildTree', () => {
   it('nests files under their directories', () => {
@@ -35,10 +35,26 @@ describe('buildTree', () => {
   });
 });
 
+describe('orderRoots', () => {
+  it('puts the three primary folders first, then other dirs, then loose files', () => {
+    const roots = buildTree([
+      { path: 'README.md', type: 'file' },
+      { path: 'assets', type: 'dir' },
+      { path: 'published', type: 'dir' },
+      { path: 'drafts', type: 'dir' },
+      { path: 'reference', type: 'dir' },
+    ]);
+    expect(orderRoots(roots).map((n) => n.name)).toEqual([
+      'reference', 'drafts', 'published', 'assets', 'README.md',
+    ]);
+  });
+});
+
 describe('folderLabel', () => {
   it('maps standard folders to friendly labels', () => {
-    expect(folderLabel('reference')).toContain('Tư liệu nguồn');
-    expect(folderLabel('drafts')).toContain('Bản nháp');
+    expect(folderLabel('reference')).toContain('Tài liệu nguồn');
+    expect(folderLabel('drafts')).toContain('Bản thảo');
+    expect(folderLabel('published')).toContain('Xuất bản');
   });
   it('falls back to the raw name for unknown folders', () => {
     expect(folderLabel('campaign-q3')).toBe('campaign-q3');

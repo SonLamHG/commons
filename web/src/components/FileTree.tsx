@@ -83,7 +83,6 @@ function FileRow({ node, selected, onSelect, published }: {
       onClick={() => onSelect(node.path)}
     >
       <span className="tree-file__name">{stem}<span className="tree-file__ext">{ext}</span></span>
-      <span className="tree-file__leader" aria-hidden />
       {published[node.path] && (
         <span className="tree-file__pub"><span className="tree-file__dot" aria-hidden />pub</span>
       )}

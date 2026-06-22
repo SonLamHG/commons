@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type FileNode, isImage } from '../api';
 import { renderMarkdown, resolvePostImage } from '../markdown';
-import { buildTree } from '../tree';
+import { buildTree, orderRoots } from '../tree';
 import { FileTree } from './FileTree';
 import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog';
 
@@ -118,7 +118,7 @@ export function FileBrowser({ ws }: { ws: string }) {
     });
   };
 
-  const tree = useMemo(() => buildTree(files ?? []), [files]);
+  const tree = useMemo(() => orderRoots(buildTree(files ?? [])), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
   const pubCount = Object.keys(published).length;

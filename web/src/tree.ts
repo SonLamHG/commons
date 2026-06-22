@@ -40,10 +40,9 @@ export function buildTree(nodes: FileNode[]): TreeNode[] {
 }
 
 const LABELS: Record<string, string> = {
-  reference: 'Tư liệu nguồn',
-  drafts: 'Bản nháp',
-  published: 'Đã xuất bản',
-  assets: 'Tài nguyên',
+  reference: 'Tài liệu nguồn',
+  drafts: 'Bản thảo',
+  published: 'Xuất bản',
 };
 
 /** Friendly label for a directory name; raw name if not a standard folder. */
@@ -51,5 +50,17 @@ export function folderLabel(name: string): string {
   return LABELS[name] ?? name;
 }
 
-/** Standard top-level folders, expanded by default in the UI. */
-export const STANDARD_FOLDERS = ['reference', 'drafts', 'published', 'assets'];
+/** The three primary folders — styled as sections and expanded by default. */
+export const STANDARD_FOLDERS = ['reference', 'drafts', 'published'];
+
+/** Order the top level for reading: the three primary folders first (canonical
+ *  order), then any other folders, then loose root files. Nested children keep
+ *  their first-seen order. */
+export function orderRoots(nodes: TreeNode[]): TreeNode[] {
+  const rank = (n: TreeNode): number => {
+    if (n.type !== 'dir') return 200;              // loose files last
+    const i = STANDARD_FOLDERS.indexOf(n.name);
+    return i === -1 ? 100 : i;                       // primary folders first, others between
+  };
+  return [...nodes].sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name));
+}

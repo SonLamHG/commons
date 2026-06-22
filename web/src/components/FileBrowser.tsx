@@ -179,7 +179,7 @@ export function FileBrowser({ ws }: { ws: string }) {
           {!selected && <p className="empty">Chọn một tài liệu để xem.</p>}
           {selected && (
             <>
-              <div className="detailbar">
+              <div className="doc-folio">
                 <span className="docpath">{selected}</span>
                 <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
               </div>
@@ -188,7 +188,7 @@ export function FileBrowser({ ws }: { ws: string }) {
                   <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
                     {pub ? 'Đăng lại' : 'Đăng bài'}
                   </button>
-                  {!savedWebhook && <span className="empty">Đặt webhook ở trên để đăng bài.</span>}
+                  {!savedWebhook && <span className="empty">Mở “Đăng bài” ở trên để đặt webhook.</span>}
                   {pub && <span className="empty">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
                 </div>
               )}
@@ -196,15 +196,15 @@ export function FileBrowser({ ws }: { ws: string }) {
               {content === null && <p className="empty">Đang tải…</p>}
               {content !== null && (
                 isImage(selected)
-                  ? <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                  ? <figure className="doc-leaf doc-leaf--image">
+                      <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                      <figcaption className="doc-leaf__caption">{selected}</figcaption>
+                    </figure>
                   : isMd
-                    ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
-                    : (
-                      <div className="diff-file">
-                        <h4>{selected}</h4>
-                        <pre className="diff-body diff-body--pad">{content}</pre>
-                      </div>
-                    )
+                    ? <article className="doc-leaf">
+                        <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
+                      </article>
+                    : <div className="doc-leaf doc-leaf--text"><pre className="doc-pre">{content}</pre></div>
               )}
             </>
           )}

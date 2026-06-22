@@ -297,9 +297,9 @@ body::before {
   margin: 0 0 16px; color: var(--ink);
 }
 .detail { flex: 1; padding: 22px 36px; overflow: auto; }
-/* cap the review column so the sticky toolbar's title and actions don't fly to
-   opposite screen edges on wide desks; keeps the eye-travel short. */
-.detail > * { max-width: 1040px; margin-left: auto; margin-right: auto; }
+/* a single centred reading column — folio, actions, and the document leaf all
+   align to an ideal measure (~70ch), keeping eye-travel short on wide desks. */
+.detail > * { max-width: 760px; margin-left: auto; margin-right: auto; }
 
 /* Sticky review bar — keeps the proposal title + Approve/Reject in view while
    scrolling a long document, so the reviewer never has to scroll back up to act.
@@ -584,10 +584,20 @@ body::before {
 .webhook-popover__row { display: flex; justify-content: flex-end; margin-top: 2px; }
 .webhook-popover__row .btn.save { padding: 8px 16px; font-size: 13px; }
 
-/* ---------- File detail toolbar ---------- */
-.detailbar {
+/* ---------- Reader folio: a sticky running header carrying the doc path ---------- */
+.doc-folio {
+  position: sticky; top: 0; z-index: 5;
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--rule);
+  margin-bottom: 22px; padding: 10px 0 12px;
+  background: var(--paper); border-bottom: 1px solid var(--rule);
+}
+/* paper mask filling the .detail top padding so nothing peeks above the folio */
+.doc-folio::before {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 100%;
+  height: 24px; background: var(--paper);
+}
+.doc-folio .docpath {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .btn.ghost {
   background: transparent; color: var(--vermilion);
@@ -651,6 +661,48 @@ body::before {
   border-left: 3px solid var(--rule); color: var(--ink-soft); font-style: italic;
 }
 .doc hr { border: none; border-top: 1px solid var(--rule); margin: 1.8em 0; }
+
+/* ---------- Reading Room: the document leaf ----------
+   A centred printed page. In the Files reader the leaf carries the card chrome,
+   so the nested .doc drops its own border/shadow (DiffView still uses the boxed
+   .doc on its own). Adds a drop-cap and an asterism rule for a press feel. */
+.doc-leaf {
+  background: var(--paper-2);
+  border: 1px solid var(--rule-soft);
+  border-radius: 6px;
+  box-shadow: var(--shadow-md);
+  padding: 48px clamp(28px, 5vw, 64px);
+  margin-bottom: 26px;
+  animation: rise .4s both;
+}
+.doc-leaf .doc {
+  background: none; border: none; border-radius: 0;
+  box-shadow: none; padding: 0; max-width: none;
+  font-size: 16.5px; line-height: 1.78;
+}
+/* drop-cap on the first paragraph — Fraunces, dropped two lines */
+.doc-leaf .doc > p:first-of-type::first-letter {
+  font-family: var(--serif); font-weight: 600;
+  float: left; font-size: 3.3em; line-height: .78;
+  padding: 6px 10px 0 0; color: var(--ink);
+}
+/* asterism in place of a plain rule */
+.doc-leaf .doc hr { border: none; text-align: center; margin: 2em 0; }
+.doc-leaf .doc hr::before { content: "\2042"; color: var(--ink-faint); font-size: 20px; letter-spacing: .3em; }
+
+/* image leaf — a centred plate with a caption */
+.doc-leaf--image { display: block; text-align: center; }
+.doc-leaf--image .post-image { max-height: 460px; border: 1px solid var(--rule); }
+.doc-leaf__caption {
+  font-family: var(--mono); font-size: 11px; color: var(--ink-faint);
+  margin-top: 12px;
+}
+/* plain-text leaf */
+.doc-leaf--text { padding: 28px clamp(24px, 4vw, 40px); }
+.doc-pre {
+  margin: 0; font-family: var(--mono); font-size: 13px; line-height: 1.7;
+  white-space: pre-wrap; word-break: break-word; color: var(--ink);
+}
 
 @keyframes rise {
   from { opacity: 0; transform: translateY(6px); }

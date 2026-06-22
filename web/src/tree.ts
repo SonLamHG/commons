@@ -50,8 +50,10 @@ export function folderLabel(name: string): string {
   return LABELS[name] ?? name;
 }
 
-/** The three primary folders — styled as sections and expanded by default. */
-export const STANDARD_FOLDERS = ['reference', 'drafts', 'published'];
+/** The three primary folders — styled as sections and expanded by default.
+ *  Order here drives both the rail order and orderRoots: drafts first (the
+ *  active work), then published, then reference. */
+export const STANDARD_FOLDERS = ['drafts', 'published', 'reference'];
 
 /** Order the top level for reading: the three primary folders first (canonical
  *  order), then any other folders, then loose root files. Nested children keep

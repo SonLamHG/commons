@@ -193,43 +193,47 @@ export function FileBrowser({ ws }: { ws: string }) {
           )}
           {selected && (
             <>
-              <div className="doc-folio">
-                <div className="doc-folio__id">
-                  {section && <span className="doc-folio__kick" data-accent={section}>{folderLabel(section)}</span>}
-                  <span className="docpath">{selected}</span>
-                  {pub && <span className="doc-folio__meta">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
-                </div>
-                <div className="doc-folio__actions">
-                  {isMd && (
-                    <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}
-                      title={!savedWebhook ? 'Đặt webhook ở “Đăng bài ▾” phía trên để đăng' : undefined}>
-                      {pub ? 'Đăng lại' : 'Đăng bài'}
-                    </button>
-                  )}
-                  <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
+              <div className="detail__head">
+                <div className="doc-folio">
+                  <div className="doc-folio__id">
+                    {section && <span className="doc-folio__kick" data-accent={section}>{folderLabel(section)}</span>}
+                    <span className="docpath">{selected}</span>
+                    {pub && <span className="doc-folio__meta">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
+                  </div>
+                  <div className="doc-folio__actions">
+                    {isMd && (
+                      <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}
+                        title={!savedWebhook ? 'Đặt webhook ở “Đăng bài ▾” phía trên để đăng' : undefined}>
+                        {pub ? 'Đăng lại' : 'Đăng bài'}
+                      </button>
+                    )}
+                    <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
+                  </div>
                 </div>
               </div>
-              {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
-              {content === null && (
-                <div className="doc-leaf sk-doc" aria-hidden>
-                  <div className="sk-line" style={{ width: '55%', height: 22 }} />
-                  {['100%', '96%', '90%', '93%', '40%'].map((w, i) => (
-                    <div key={i} className="sk-line" style={{ width: w }} />
-                  ))}
-                </div>
-              )}
-              {content !== null && (
-                isImage(selected)
-                  ? <figure className="doc-leaf doc-leaf--image">
-                      <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
-                      <figcaption className="doc-leaf__caption">{selected}</figcaption>
-                    </figure>
-                  : isMd
-                    ? <article className="doc-leaf">
-                        <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
-                      </article>
-                    : <div className="doc-leaf doc-leaf--text"><pre className="doc-pre">{content}</pre></div>
-              )}
+              <div className="detail__scroll">
+                {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
+                {content === null && (
+                  <div className="doc-leaf sk-doc" aria-hidden>
+                    <div className="sk-line" style={{ width: '55%', height: 22 }} />
+                    {['100%', '96%', '90%', '93%', '40%'].map((w, i) => (
+                      <div key={i} className="sk-line" style={{ width: w }} />
+                    ))}
+                  </div>
+                )}
+                {content !== null && (
+                  isImage(selected)
+                    ? <figure className="doc-leaf doc-leaf--image">
+                        <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                        <figcaption className="doc-leaf__caption">{selected}</figcaption>
+                      </figure>
+                    : isMd
+                      ? <article className="doc-leaf">
+                          <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
+                        </article>
+                      : <div className="doc-leaf doc-leaf--text"><pre className="doc-pre">{content}</pre></div>
+                )}
+              </div>
             </>
           )}
         </div>

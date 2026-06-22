@@ -45,7 +45,7 @@ describe('orderRoots', () => {
       { path: 'reference', type: 'dir' },
     ]);
     expect(orderRoots(roots).map((n) => n.name)).toEqual([
-      'reference', 'drafts', 'published', 'assets', 'README.md',
+      'drafts', 'published', 'reference', 'assets', 'README.md',
     ]);
   });
 });

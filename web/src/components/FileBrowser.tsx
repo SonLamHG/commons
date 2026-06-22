@@ -158,8 +158,16 @@ export function FileBrowser({ ws }: { ws: string }) {
         <div className="list">
           <h2>Mục lục</h2>
           {error && <p className="notice notice--error" role="alert">{error}</p>}
-          {files === null && <p className="empty">Đang tải…</p>}
-          {files !== null && files.length === 0 && <p className="empty">Chưa có tài liệu nào.</p>}
+          {files === null && (
+            <div className="sk-toc" aria-hidden>
+              {['52%', '78%', '64%', '80%', '58%'].map((w, i) => (
+                <div key={i} className="sk-line" style={{ width: w, height: i === 0 ? 14 : 12 }} />
+              ))}
+            </div>
+          )}
+          {files !== null && files.length === 0 && (
+            <p className="empty">Chưa có tài liệu nào. <br />— dùng <b>↑ Tải lên</b> ở trên để thêm tư liệu nguồn.</p>
+          )}
           {files !== null && files.length > 0 && (
             <>
               <FileTree
@@ -176,7 +184,12 @@ export function FileBrowser({ ws }: { ws: string }) {
           )}
         </div>
         <div className="detail">
-          {!selected && <p className="empty">Chọn một tài liệu để xem.</p>}
+          {!selected && (
+            <div className="doc-empty">
+              <span className="doc-empty__ic" aria-hidden>▢</span>
+              <p>Chọn một tài liệu để xem.</p>
+            </div>
+          )}
           {selected && (
             <>
               <div className="doc-folio">
@@ -193,7 +206,14 @@ export function FileBrowser({ ws }: { ws: string }) {
                 </div>
               )}
               {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
-              {content === null && <p className="empty">Đang tải…</p>}
+              {content === null && (
+                <div className="doc-leaf sk-doc" aria-hidden>
+                  <div className="sk-line" style={{ width: '55%', height: 22 }} />
+                  {['100%', '96%', '90%', '93%', '40%'].map((w, i) => (
+                    <div key={i} className="sk-line" style={{ width: w }} />
+                  ))}
+                </div>
+              )}
               {content !== null && (
                 isImage(selected)
                   ? <figure className="doc-leaf doc-leaf--image">

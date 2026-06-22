@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api, UnauthorizedError, friendlyError, type Proposal } from './api';
+import { api, UnauthorizedError, friendlyError, type Proposal, type ProposalStats } from './api';
 import { ProposalList } from './components/ProposalList';
 import { FileBrowser } from './components/FileBrowser';
 import { AgentChat } from './components/AgentChat';
@@ -12,6 +12,7 @@ export function App() {
   const [workspaces, setWorkspaces] = useState<string[]>([]);
   const [ws, setWs] = useState<string | null>(null);
   const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [proposalStats, setProposalStats] = useState<Record<string, ProposalStats>>({});
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<'assistant' | 'proposals' | 'files'>('assistant');
   const [creating, setCreating] = useState(false);
@@ -46,6 +47,7 @@ export function App() {
 
   const loadProposals = (w: string) => {
     setProposalsLoading(true);
+    api.proposalStats(w).then(setProposalStats).catch(() => setProposalStats({}));
     return api.proposals(w).then(setProposals).catch(onAuthError)
       .finally(() => setProposalsLoading(false));
   };
@@ -177,7 +179,7 @@ export function App() {
             {tab === 'assistant'
               ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
               : tab === 'proposals'
-                ? <ProposalList ws={ws} proposals={proposals} loading={proposalsLoading} onChanged={() => loadProposals(ws)} />
+                ? <ProposalList ws={ws} proposals={proposals} stats={proposalStats} loading={proposalsLoading} onChanged={() => loadProposals(ws)} />
                 : <FileBrowser ws={ws} />}
           </>
         ) : (

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { type Proposal } from '../api';
+import { type Proposal, type ProposalStats } from '../api';
 import { DiffView } from './DiffView';
 
 /** Compact relative time, e.g. "2 giờ trước". Falls back to a date for old items. */
@@ -29,8 +29,8 @@ const mark = (s: string) => MARK[s] ?? { label: s, tone: 'stone' };
 
 const needsReview = (s: string) => s === 'submitted' || s === 'open';
 
-export function ProposalList({ ws, proposals, loading = false, onChanged }: {
-  ws: string; proposals: Proposal[]; loading?: boolean; onChanged: () => void;
+export function ProposalList({ ws, proposals, stats = {}, loading = false, onChanged }: {
+  ws: string; proposals: Proposal[]; stats?: Record<string, ProposalStats>; loading?: boolean; onChanged: () => void;
 }) {
   const [selected, setSelected] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -85,6 +85,7 @@ export function ProposalList({ ws, proposals, loading = false, onChanged }: {
 
   const renderRow = (p: Proposal) => {
     const mk = mark(p.status);
+    const st = stats[p.id];
     return (
       <button
         key={p.id}
@@ -96,7 +97,16 @@ export function ProposalList({ ws, proposals, loading = false, onChanged }: {
           <span className="qid">{p.id.slice(0, 4)}</span>
         </span>
         <span className="qttl">{p.title}</span>
-        <span className="qmeta"><span className="qwhen">{relativeTime(p.createdAt)}</span></span>
+        <span className="qmeta">
+          {st && (
+            <span className="qdelta">
+              {st.additions > 0 && <span className="a">+{st.additions}</span>}
+              {st.deletions > 0 && <span className="d">−{st.deletions}</span>}
+              {st.files > 0 && <span className="qfiles">{st.files} tệp</span>}
+            </span>
+          )}
+          <span className="qwhen">{relativeTime(p.createdAt)}</span>
+        </span>
       </button>
     );
   };

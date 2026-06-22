@@ -1,4 +1,5 @@
-export interface Proposal { id: string; branch: string; title: string; status: string; createdAt: string; }
+export interface Proposal { id: string; branch: string; title: string; status: string; createdAt: string; prompt?: string; }
+export interface ProposalStats { files: number; additions: number; deletions: number; }
 export interface FileDiff { path: string; status: 'added' | 'modified' | 'deleted'; diff: string; }
 export type MergeResult = { merged: true } | { merged: false; conflicts: string[] };
 export interface FileNode { path: string; type: 'file' | 'dir'; }
@@ -32,6 +33,8 @@ export const api = {
   },
   workspaces: (): Promise<string[]> => fetch('/api/workspaces').then(j),
   proposals: (ws: string): Promise<Proposal[]> => fetch(`/api/workspaces/${ws}/proposals`).then(j),
+  proposalStats: (ws: string): Promise<Record<string, ProposalStats>> =>
+    fetch(`/api/workspaces/${ws}/proposals/stats`).then(j),
   diff: (ws: string, id: string): Promise<FileDiff[]> => fetch(`/api/workspaces/${ws}/proposals/${id}/diff`).then(j),
   proposalFile: (ws: string, id: string, path: string): Promise<{ path: string; content: string }> =>
     fetch(`/api/workspaces/${ws}/proposals/${id}/file?path=${encodeURIComponent(path)}`).then(j),

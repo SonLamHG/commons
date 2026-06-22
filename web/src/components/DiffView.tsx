@@ -61,20 +61,6 @@ function ProseDiff({ base, next }: { base: string; next: string }) {
   );
 }
 
-function DiffBody({ diff }: { diff: string }) {
-  return (
-    <pre className="diff-body">
-      {diff.split('\n').map((line, i) => {
-        const cls = line.startsWith('+') && !line.startsWith('+++') ? 'add'
-          : line.startsWith('-') && !line.startsWith('---') ? 'del'
-          : (line.startsWith('diff ') || line.startsWith('@@') || line.startsWith('index ') || line.startsWith('+++') || line.startsWith('---')) ? 'meta'
-          : '';
-        return <div key={i} className={`diff-line ${cls}`}>{line || ' '}</div>;
-      })}
-    </pre>
-  );
-}
-
 // A stable DOM id per file so the ToC can scroll to a section in any view.
 const fileAnchor = (path: string) => 'pf_' + path.replace(/[^a-zA-Z0-9]/g, '_');
 
@@ -87,7 +73,7 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
 }) {
   const [diffs, setDiffs] = useState<FileDiff[] | null>(null);
   const [docs, setDocs] = useState<{ path: string; status: string; content: string; base: string }[] | null>(null);
-  const [view, setView] = useState<'prose' | 'read' | 'changes'>('prose');
+  const [view, setView] = useState<'read' | 'prose'>('read');
   const [busy, setBusy] = useState(false);
   const [conflict, setConflict] = useState<string[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,7 +83,7 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
 
   useEffect(() => {
     let live = true;
-    setConflict(null); setError(null); setDiffs(null); setDocs(null); setView('prose');
+    setConflict(null); setError(null); setDiffs(null); setDocs(null); setView('read');
     // Merged/discarded proposals have no branch anymore — don't diff (avoids "unknown revision").
     if (!reviewable) { setDiffs([]); setDocs([]); return; }
     api.diff(ws, proposal.id).then(async (d) => {
@@ -173,7 +159,11 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
   // Drop image docs whose filename is embedded by some markdown doc — otherwise
   // the picture shows twice (once as a standalone banner, once inline in the post).
   const mdText = (docs ?? []).filter((d) => d.path.endsWith('.md')).map((d) => d.content).join('\n');
+  // The reading view shows the proposed FINAL document, so deleted files (gone
+  // after merge) are omitted — "what's removed" lives in the prose view. Images a
+  // markdown post already embeds are also dropped (no double banner).
   const readDocs = (docs ?? []).filter((d) => {
+    if (d.status === 'deleted') return false;
     if (!isImage(d.path)) return true;
     const base = d.path.split('/').pop() ?? d.path;
     return !mdText.includes(base);
@@ -232,11 +222,17 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
           {reviewable && diffs === null && <p className="empty">Đang tải…</p>}
           {reviewable && diffs?.length === 0 && <p className="empty">Không có thay đổi.</p>}
 
+          {proposal.prompt && (
+            <div className="agentctx">
+              <div className="agentctx-h"><span className="ic">✦</span>Trợ lý tạo đề xuất từ yêu cầu</div>
+              <blockquote>“{proposal.prompt}”</blockquote>
+            </div>
+          )}
+
           {hasChanges && (
             <div className="viewtoggle" role="group" aria-label="Chế độ xem">
-              <button aria-pressed={view === 'prose'} className={view === 'prose' ? 'seg active' : 'seg'} onClick={() => setView('prose')}>Văn xuôi</button>
               <button aria-pressed={view === 'read'} className={view === 'read' ? 'seg active' : 'seg'} onClick={() => setView('read')}>Bản đọc</button>
-              <button aria-pressed={view === 'changes'} className={view === 'changes' ? 'seg active' : 'seg'} onClick={() => setView('changes')}>Thay đổi</button>
+              <button aria-pressed={view === 'prose'} className={view === 'prose' ? 'seg active' : 'seg'} onClick={() => setView('prose')}>Văn xuôi</button>
             </div>
           )}
 
@@ -265,30 +261,21 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
             );
           })}
 
-          {/* Reading view: the proposed final document. Embedded images are hidden
-              to avoid showing the same picture twice (banner + inline). */}
+          {/* Reading view: the proposed final document, as clean as possible —
+              just the manuscript under a light path caption. Embedded images are
+              hidden to avoid showing the same picture twice (banner + inline). */}
+          {view === 'read' && hasChanges && readDocs.length === 0 && (
+            <p className="empty">Đề xuất này chỉ gỡ bỏ tài liệu — xem chi tiết ở tab Văn xuôi.</p>
+          )}
           {view === 'read' && readDocs?.map((d) => (
-            <div key={d.path} id={fileAnchor(d.path)} className="docwrap">
-              <div className="docmeta">
-                <span className={`badge ${FILE_BADGE(d.status)}`}>{FILE_LABEL(d.status)}</span>
-                <span className="docpath">{d.path}</span>
-              </div>
-              {d.status === 'deleted'
-                ? <p className="empty">Tài liệu này sẽ bị gỡ bỏ.</p>
-                : isImage(d.path)
-                  ? <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
-                  : d.path.endsWith('.md')
-                    ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
-                    : <pre className="diff-body diff-body--pad">{d.content}</pre>}
-            </div>
-          ))}
-
-          {/* Changes view: the precise git-level diff, for those who want it. */}
-          {view === 'changes' && diffs?.map((d) => (
-            <div key={d.path} id={fileAnchor(d.path)} className="diff-file">
-              <h4>[{d.status}] {d.path}</h4>
-              <DiffBody diff={d.diff} />
-            </div>
+            <article key={d.path} id={fileAnchor(d.path)} className="readdoc">
+              <div className="readdoc-cap">{d.path}</div>
+              {isImage(d.path)
+                ? <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
+                : d.path.endsWith('.md')
+                  ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
+                  : <pre className="diff-body diff-body--pad">{d.content}</pre>}
+            </article>
           ))}
         </div>
       </div>

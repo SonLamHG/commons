@@ -160,6 +160,20 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     return engineOf(req).listProposals(ws);
   });
 
+  // Diff stats (files / +/−) for the still-active proposals, keyed by id. Computed
+  // on demand (git numstat) rather than stored, so it never drifts. Resolved
+  // proposals have no branch and are omitted.
+  app.get('/api/workspaces/:ws/proposals/stats', async (req) => {
+    const { ws } = req.params as { ws: string };
+    const eng = engineOf(req);
+    const active = (await eng.listProposals(ws)).filter((p) => p.status === 'submitted' || p.status === 'open');
+    const out: Record<string, { files: number; additions: number; deletions: number }> = {};
+    await Promise.all(active.map(async (p) => {
+      try { out[p.id] = await eng.proposalStats(ws, p.id); } catch { /* skip unreadable */ }
+    }));
+    return out;
+  });
+
   app.get('/api/workspaces/:ws/proposals/:id/diff', async (req) => {
     const { ws, id } = req.params as { ws: string; id: string };
     return engineOf(req).diffProposal(ws, id);
@@ -311,10 +325,21 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
     reply.header('content-type', 'application/x-ndjson');
     const stream = new Readable({ read() {} });
     const write = (e: unknown) => stream.push(JSON.stringify(e) + '\n');
+    // Snapshot existing proposals so we can attribute any created during this run
+    // back to the prompt that produced them (shown as agent context in review).
+    const before = new Set((await engineOf(req).listProposals(ws)).map((p) => p.id));
     agentRunner
       .run(registry.rootFor(tenantOf(req)), ws, prompt, write)
       .catch((e) => write({ type: 'error', message: e instanceof Error ? e.message : String(e) }))
-      .finally(() => stream.push(null));
+      .finally(async () => {
+        try {
+          const fresh = (await engineOf(req).listProposals(ws)).filter((p) => !before.has(p.id) && !p.prompt);
+          for (const p of fresh) {
+            await lock(req, ws, () => engineOf(req).setProposalPrompt(ws, p.id, prompt.trim()));
+          }
+        } catch { /* best-effort attribution */ }
+        stream.push(null);
+      });
     return reply.send(stream);
   });
 

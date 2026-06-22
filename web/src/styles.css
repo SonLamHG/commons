@@ -1389,4 +1389,36 @@ pre.doc--new { padding-left: 20px; }
   border: 1px solid var(--rule); background: var(--paper-2); color: var(--ink-faint);
 }
 .btn.approve .kbd-chip { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); color: rgba(255,255,255,.85); }
-.btn.reject .kbd-chip { border-color: var(--vermilion-2); background: transparent; color: var(--vermilion); }
+.btn.reject .kbd-chip { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); color: rgba(255,255,255,.9); }
+
+/* queue row diff stats */
+.qdelta { display: inline-flex; align-items: baseline; gap: 8px; font-family: var(--mono); font-size: 10px; font-variant-numeric: tabular-nums; }
+.qdelta .a { color: var(--forest); }
+.qdelta .d { color: var(--vermilion); }
+.qdelta .qfiles { color: var(--ink-faint); }
+.qwhen { margin-left: auto; }
+
+/* agent context card in the review pane */
+.agentctx {
+  position: relative; border: 1px solid var(--rule); border-radius: 13px;
+  background: linear-gradient(180deg, #fffdf8, var(--paper-2));
+  padding: 14px 18px; margin-bottom: 26px; overflow: hidden; box-shadow: var(--shadow-sm);
+}
+.agentctx::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; background: var(--indigo); opacity: .55; }
+.agentctx-h {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--indigo); font-weight: 600;
+  display: flex; align-items: center; gap: 8px; margin-bottom: 10px;
+}
+.agentctx-h .ic { width: 15px; height: 15px; border-radius: 4px; background: var(--indigo-2); color: var(--indigo); display: grid; place-items: center; font-size: 9px; }
+.agentctx blockquote {
+  margin: 0; border: none; padding: 0;
+  font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 15px;
+  color: var(--ink); line-height: 1.6;
+}
+
+/* Reading view: minimal chrome — a light path caption above the manuscript. */
+.readdoc + .readdoc { margin-top: 36px; padding-top: 30px; border-top: 1px solid var(--rule-soft); }
+.readdoc-cap {
+  font-family: var(--mono); font-size: 10.5px; letter-spacing: .02em;
+  color: var(--ink-faint); margin-bottom: 12px;
+}

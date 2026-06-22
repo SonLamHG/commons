@@ -1,7 +1,7 @@
 import { simpleGit, type SimpleGit } from 'simple-git';
 import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync, statSync, rmSync } from 'node:fs';
 import { join, dirname, relative, sep, isAbsolute, resolve } from 'node:path';
-import type { Engine, Proposal, FileDiff } from './types.js';
+import type { Engine, Proposal, FileDiff, ProposalStats } from './types.js';
 
 /** Normalize to forward slashes so Git for Windows handles paths correctly. */
 const fwd = (p: string) => p.replace(/\\/g, '/');
@@ -209,6 +209,27 @@ export function createEngine(rootDir: string): Engine {
         result.push({ path, status, diff: patch });
       }
       return result;
+    },
+    async proposalStats(workspaceId, proposalId) {
+      const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);
+      if (!proposal) throw new Error(`proposal not found: ${proposalId}`);
+      // Merged/discarded proposals no longer have a branch to diff against.
+      const empty: ProposalStats = { files: 0, additions: 0, deletions: 0 };
+      if (proposal.status === 'merged' || proposal.status === 'discarded') return empty;
+      const git = simpleGit(repoPath(workspaceId));
+      const out = await git.raw(['diff', '--numstat', 'main', `proposal/${proposalId}`]);
+      const stats = { ...empty };
+      for (const line of out.split('\n').filter(Boolean)) {
+        const [add, del] = line.split('\t');
+        stats.files++;
+        // Binary files report '-' for both columns — count as zero line churn.
+        stats.additions += add === '-' ? 0 : (parseInt(add, 10) || 0);
+        stats.deletions += del === '-' ? 0 : (parseInt(del, 10) || 0);
+      }
+      return stats;
+    },
+    async setProposalPrompt(workspaceId, proposalId, prompt) {
+      updateProposal(workspaceId, proposalId, { prompt });
     },
     async mergeProposal(workspaceId, proposalId) {
       const proposal = readMeta(workspaceId).find((p) => p.id === proposalId);

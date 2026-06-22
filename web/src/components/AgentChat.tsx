@@ -162,10 +162,24 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
             disabled={busy}
             placeholder="Bạn muốn trợ lý làm gì?"
             onChange={(e) => setPrompt(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) send(); }}
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              if (e.metaKey || e.ctrlKey) {
+                // ⌘/Ctrl+Enter inserts a newline at the caret
+                e.preventDefault();
+                const ta = e.currentTarget;
+                const { selectionStart, selectionEnd } = ta;
+                setPrompt(prompt.slice(0, selectionStart) + '\n' + prompt.slice(selectionEnd));
+                requestAnimationFrame(() => { ta.selectionStart = ta.selectionEnd = selectionStart + 1; });
+                return;
+              }
+              if (e.shiftKey) return; // Shift+Enter also newlines (browser default)
+              e.preventDefault();
+              send();
+            }}
           />
           <div className="chatbox-bar">
-            <span className="chatbox-hint">⌘ / Ctrl+Enter để gửi</span>
+            <span className="chatbox-hint">Enter để gửi · ⌘ / Ctrl+Enter để xuống dòng</span>
             {busy
               ? <button className="btn reject" onClick={cancel}>Dừng</button>
               : <button className="btn approve" disabled={!prompt.trim()} onClick={send}>Gửi</button>}

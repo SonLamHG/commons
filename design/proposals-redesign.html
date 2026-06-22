@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Tab Đề xuất + Chi tiết (hi-fi)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     Commons — letterpress review desk, hi-fi redesign
+     Lai A+B (list mật độ cao) và A+C (chi tiết + diff văn xuôi)
+     ============================================================ */
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --paper:#f6f1e7;--paper2:#fbf8f1;--paper3:#fffdf8;
+    --ink:#1f1b16;--inksoft:#5c5347;--inkfaint:#756b59;
+    --rule:#e2d8c6;--rule2:#ece3d4;
+    --verm:#c43d23;--verm2:#e8d6cf;
+    --forest:#2f6b46;--forest2:#d9e6dc;
+    --amber:#a9701a;--amber2:#efe2c9;
+    --slate:#6b6256;--indigo:#36507a;--indigo2:#d6dde9;
+    --serif:'Fraunces',Georgia,serif;--sans:'Hanken Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+    --shadow-sm:0 1px 0 rgba(31,27,22,.04),0 1px 2px rgba(31,27,22,.06);
+    --shadow-md:0 2px 4px rgba(31,27,22,.06),0 8px 24px rgba(31,27,22,.08);
+  }
+  html,body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{background-image:radial-gradient(1200px 600px at 100% -5%,rgba(196,61,35,.05),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(47,107,70,.05),transparent 55%);background-attachment:fixed;padding:34px clamp(16px,4vw,56px) 90px}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .pagehdr{max-width:1180px;margin:0 auto 26px}
+  .pagehdr .kick{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--inkfaint);font-weight:600}
+  .pagehdr h1{font-family:var(--serif);font-weight:500;font-size:clamp(24px,3vw,38px);letter-spacing:-.02em;margin:8px 0 4px}
+  .pagehdr h1 em{font-style:italic;color:var(--verm)}
+  .pagehdr p{color:var(--inksoft);font-size:14px;max-width:60ch}
+
+  .screen{max-width:1180px;margin:0 auto 40px;border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow-md);display:flex;height:600px;position:relative}
+  .screen::after{content:"";position:absolute;top:0;left:235px;width:3px;height:100%;background:var(--verm);z-index:5}
+  .scr-label{max-width:1180px;margin:0 auto 10px;font-family:var(--mono);font-size:12px;color:var(--inkfaint)}
+
+  /* ---------- shared sidebar ---------- */
+  .side{width:236px;flex-shrink:0;background:var(--paper2);padding:22px 18px;border-right:1px solid var(--rule);display:flex;flex-direction:column}
+  .side h2{font-family:var(--serif);font-weight:600;font-size:26px;letter-spacing:-.02em;line-height:1}
+  .side .tagline{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);margin:9px 0 16px;padding-bottom:15px;border-bottom:1px solid var(--rule)}
+  .side .grp{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .side .grp::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .ws{font-family:var(--serif);font-size:15px;padding:9px 10px;border-radius:7px;color:var(--inksoft);display:flex;align-items:baseline;gap:9px;cursor:pointer}
+  .ws .c{font-family:var(--mono);font-size:10px;color:var(--inkfaint)}
+  .ws.on{background:var(--paper3);color:var(--ink);font-weight:500;box-shadow:var(--shadow-sm);border:1px solid var(--rule)}
+  .side .colophon{margin-top:auto;padding-top:16px;border-top:1px solid var(--rule);font-size:11.5px;color:var(--inkfaint);line-height:1.5}
+  .side .colophon b{color:var(--inksoft)}
+
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .tabs{display:flex;gap:26px;padding:20px 26px 0;border-bottom:1px solid var(--rule)}
+  .tabs .tab{font-size:13px;color:var(--inkfaint);padding-bottom:13px;position:relative;cursor:pointer}
+  .tabs .tab.on{color:var(--ink);font-weight:600}
+  .tabs .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--verm)}
+
+  /* ============================================================
+     SCREEN 1 — Tab Đề xuất: ledger mật độ cao + phím tắt
+     ============================================================ */
+  .toolbar{display:flex;align-items:center;gap:14px;padding:16px 26px 12px}
+  .filters{display:flex;gap:4px;background:var(--paper2);border:1px solid var(--rule);border-radius:9px;padding:3px}
+  .filters .f{font-size:12px;padding:5px 12px;border-radius:6px;color:var(--inksoft);cursor:pointer}
+  .filters .f.on{background:var(--paper3);color:var(--ink);font-weight:600;box-shadow:var(--shadow-sm)}
+  .filters .f .n{font-family:var(--mono);font-size:10px;color:var(--inkfaint);margin-left:5px}
+  .search{margin-left:auto;font-size:12.5px;color:var(--inkfaint);border:1px solid var(--rule);background:var(--paper3);border-radius:8px;padding:7px 12px;width:190px}
+  .keyhint{font-size:11px;color:var(--inkfaint);display:flex;gap:12px}
+  .kbd{font-family:var(--mono);font-size:10px;background:var(--paper3);border:1px solid var(--rule);border-bottom-width:2px;border-radius:4px;padding:1px 6px;color:var(--inksoft)}
+
+  /* ledger header */
+  .ledger{padding:0 26px;overflow:auto;flex:1}
+  .lhead{display:grid;grid-template-columns:26px 64px 1fr 96px 70px 88px;gap:14px;padding:8px 12px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;border-bottom:1px solid var(--rule);position:sticky;top:0;background:var(--paper)}
+  .lrow{display:grid;grid-template-columns:26px 64px 1fr 96px 70px 88px;gap:14px;align-items:center;padding:13px 12px;border-bottom:1px solid var(--rule2);cursor:pointer;position:relative}
+  .lrow:hover{background:var(--paper2)}
+  .lrow.sel{background:var(--paper3);box-shadow:inset 0 0 0 1px var(--rule)}
+  .lrow.sel::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--verm)}
+  .lrow .dot{width:8px;height:8px;border-radius:50%;justify-self:center}
+  .lrow .id{font-family:var(--mono);font-size:11px;color:var(--inkfaint)}
+  .lrow .title{font-family:var(--serif);font-size:15.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .lrow .title .by{font-family:var(--sans);font-size:11px;color:var(--inkfaint);margin-left:9px;font-weight:400}
+  .stamp{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border:1.5px solid;padding:3px 7px;border-radius:4px;justify-self:start;transform:rotate(-2.5deg);white-space:nowrap}
+  .stamp.pending{border-color:var(--amber);color:var(--amber);background:rgba(169,112,26,.05)}
+  .stamp.merged{border-color:var(--forest);color:var(--forest);background:rgba(47,107,70,.05)}
+  .stamp.rejected{border-color:var(--verm);color:var(--verm);background:rgba(196,61,35,.05)}
+  .stamp.draft{border-color:var(--slate);color:var(--slate)}
+  .lrow .delta{font-family:var(--mono);font-size:11.5px}
+  .lrow .delta .add{color:var(--forest)}.lrow .delta .del{color:var(--verm)}
+  .lrow .when{font-size:11.5px;color:var(--inkfaint);text-align:right}
+
+  /* ============================================================
+     SCREEN 2 — Chi tiết một đề xuất + diff văn xuôi
+     ============================================================ */
+  .det-hdr{padding:20px 28px 16px;border-bottom:1px solid var(--rule)}
+  .det-back{font-size:12px;color:var(--inkfaint);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+  .det-titlerow{display:flex;align-items:flex-start;gap:14px}
+  .det-hdr h3{font-family:var(--serif);font-weight:500;font-size:24px;letter-spacing:-.01em;flex:1}
+  .branch{font-family:var(--mono);font-size:11px;color:var(--inksoft);background:var(--paper2);border:1px solid var(--rule);border-radius:20px;padding:5px 12px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}
+  .branch .arr{color:var(--verm)}
+  .det-meta{display:flex;gap:18px;margin-top:12px;font-size:12px;color:var(--inkfaint)}
+  .det-meta b{color:var(--inksoft);font-weight:600}
+
+  .det-body{flex:1;display:flex;overflow:hidden}
+  .det-files{width:210px;flex-shrink:0;border-right:1px solid var(--rule);padding:16px 12px;background:var(--paper2);overflow:auto}
+  .det-files .h{font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;margin:0 6px 10px}
+  .det-files .file{display:flex;align-items:center;gap:8px;padding:8px 8px;border-radius:7px;font-size:13px;color:var(--inksoft);cursor:pointer;margin-bottom:2px}
+  .det-files .file.on{background:var(--paper3);color:var(--ink);font-weight:500;box-shadow:var(--shadow-sm)}
+  .det-files .file .fi{font-family:var(--serif);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .det-files .file .d{font-family:var(--mono);font-size:10px}
+  .det-files .file .d .add{color:var(--forest)}.det-files .file .d .del{color:var(--verm)}
+
+  .det-diff{flex:1;overflow:auto;padding:22px 30px}
+  .diff-modeswitch{display:flex;gap:3px;background:var(--paper2);border:1px solid var(--rule);border-radius:9px;padding:3px;width:max-content;margin-bottom:22px}
+  .diff-modeswitch .m{font-size:11.5px;padding:5px 12px;border-radius:6px;color:var(--inksoft);cursor:pointer}
+  .diff-modeswitch .m.on{background:var(--paper3);color:var(--ink);font-weight:600;box-shadow:var(--shadow-sm)}
+  .prose-diff{font-family:var(--serif);font-size:16px;line-height:1.85;color:var(--ink);max-width:64ch}
+  .prose-diff h4{font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;margin:0 0 16px}
+  .prose-diff p{margin-bottom:16px}
+  .ins{background:var(--forest2);color:#1d4a2e;border-radius:3px;padding:1px 3px;text-decoration:none;box-shadow:inset 0 -2px 0 rgba(47,107,70,.35)}
+  .del{background:var(--verm2);color:#7a2414;border-radius:3px;padding:1px 3px;text-decoration:line-through;text-decoration-color:rgba(196,61,35,.6)}
+  .gutter{position:relative;padding-left:20px}
+  .gutter::before{content:"";position:absolute;left:0;top:4px;bottom:4px;width:3px;border-radius:3px}
+  .gutter.add::before{background:var(--forest)}
+  .gutter.add{background:linear-gradient(90deg,rgba(47,107,70,.06),transparent 60%)}
+
+  .det-foot{display:flex;align-items:center;gap:10px;padding:16px 28px;border-top:1px solid var(--rule);background:var(--paper2)}
+  .btn{font-size:13px;font-weight:600;padding:9px 16px;border-radius:8px;border:1px solid var(--rule);background:var(--paper3);color:var(--ink);cursor:pointer}
+  .btn.approve{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:0 1px 0 rgba(47,107,70,.4),0 6px 14px -6px rgba(47,107,70,.6)}
+  .btn.reject{background:var(--paper3);color:var(--verm);border-color:var(--verm)}
+  .det-foot .note{margin-left:auto;font-size:12px;color:var(--inkfaint);display:flex;align-items:center;gap:8px}
+  .det-foot .note .seal{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+</style>
+</head>
+<body>
+
+  <!-- ===================== SCREEN 1 ===================== -->
+  <div class="pagehdr">
+    <div class="kick">Commons · Redesign — 1 / 2</div>
+    <h1>Tab <em>Đề xuất</em> — sổ cái mật độ cao</h1>
+    <p>Giữ nguyên giấy ấm, serif và con dấu duyệt; thêm mật độ kiểu Linear: nhiều dòng/màn, lọc trạng thái có đếm, mã định danh, và phím tắt để duyệt không cần chuột.</p>
+  </div>
+  <div class="scr-label">screen 1 — /workspace/content-calendar · tab: Đề xuất</div>
+  <div class="screen">
+    <aside class="side">
+      <h2>Commons</h2>
+      <div class="tagline">Bàn duyệt công việc tri thức</div>
+      <div class="grp">Không gian làm việc</div>
+      <div class="ws on">content-calendar <span class="c">5</span></div>
+      <div class="ws">brand-guidelines <span class="c">2</span></div>
+      <div class="ws">q3-campaign <span class="c">8</span></div>
+      <div class="colophon">Agent đề xuất · con người duyệt.<br>Nhánh <b>main</b> là bản đã được phê duyệt.</div>
+    </aside>
+    <div class="main">
+      <div class="tabs"><span class="tab">Trợ lý</span><span class="tab on">Đề xuất</span><span class="tab">Tài liệu</span></div>
+      <div class="toolbar">
+        <div class="filters">
+          <span class="f on">Tất cả <span class="n">5</span></span>
+          <span class="f">Chờ duyệt <span class="n">2</span></span>
+          <span class="f">Đã merge <span class="n">1</span></span>
+          <span class="f">Khác <span class="n">2</span></span>
+        </div>
+        <div class="keyhint" style="margin-left:auto">
+          <span><span class="kbd">↑↓</span> chọn</span>
+          <span><span class="kbd">E</span> duyệt</span>
+          <span><span class="kbd">X</span> từ chối</span>
+          <span><span class="kbd">⏎</span> mở</span>
+        </div>
+      </div>
+      <div class="ledger">
+        <div class="lhead"><span></span><span>Mã</span><span>Đề xuất</span><span>Trạng thái</span><span>Thay đổi</span><span>Gửi lúc</span></div>
+
+        <div class="lrow sel">
+          <span class="dot" style="background:var(--amber)"></span>
+          <span class="id">7a3f</span>
+          <span class="title">Thêm lịch đăng tháng 7<span class="by">— trợ lý</span></span>
+          <span class="stamp pending">Chờ duyệt</span>
+          <span class="delta"><span class="add">+184</span> <span class="del">−2</span></span>
+          <span class="when">2 giờ trước</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:var(--amber)"></span>
+          <span class="id">9b2e</span>
+          <span class="title">Cập nhật từ khoá SEO cho 5 bài<span class="by">— trợ lý</span></span>
+          <span class="stamp pending">Chờ duyệt</span>
+          <span class="delta"><span class="add">+47</span> <span class="del">−31</span></span>
+          <span class="when">hôm qua</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:var(--forest)"></span>
+          <span class="id">2c1d</span>
+          <span class="title">Sửa giọng văn bản tin chào mừng<span class="by">— trợ lý</span></span>
+          <span class="stamp merged">Đã merge</span>
+          <span class="delta"><span class="add">+22</span> <span class="del">−19</span></span>
+          <span class="when">3 ngày trước</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:var(--slate)"></span>
+          <span class="id">5f80</span>
+          <span class="title">Đề xuất chủ đề webinar Q3<span class="by">— trợ lý</span></span>
+          <span class="stamp draft">Nháp</span>
+          <span class="delta"><span class="add">+12</span></span>
+          <span class="when">3 ngày trước</span>
+        </div>
+        <div class="lrow">
+          <span class="dot" style="background:var(--verm)"></span>
+          <span class="id">1a44</span>
+          <span class="title">Viết lại trang giới thiệu<span class="by">— trợ lý</span></span>
+          <span class="stamp rejected">Từ chối</span>
+          <span class="delta"><span class="add">+96</span> <span class="del">−88</span></span>
+          <span class="when">tuần trước</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== SCREEN 2 ===================== -->
+  <div class="pagehdr" style="margin-top:54px">
+    <div class="kick">Commons · Redesign — 2 / 2</div>
+    <h1>Chi tiết đề xuất — <em>diff văn xuôi</em></h1>
+    <p>Mở một đề xuất: tệp thay đổi bên trái, nhưng phần chính render thay đổi <b>theo câu chữ</b> (chèn = xanh, xoá = gạch đỏ) thay vì bảng git thô — hợp với người viết. Header “proposal → main” làm rõ invariant: không gì chạm main đến khi bạn merge.</p>
+  </div>
+  <div class="scr-label">screen 2 — /workspace/content-calendar · đề xuất 7a3f</div>
+  <div class="screen">
+    <aside class="side">
+      <h2>Commons</h2>
+      <div class="tagline">Bàn duyệt công việc tri thức</div>
+      <div class="grp">Không gian làm việc</div>
+      <div class="ws on">content-calendar <span class="c">5</span></div>
+      <div class="ws">brand-guidelines <span class="c">2</span></div>
+      <div class="ws">q3-campaign <span class="c">8</span></div>
+      <div class="colophon">Agent đề xuất · con người duyệt.<br>Nhánh <b>main</b> là bản đã được phê duyệt.</div>
+    </aside>
+    <div class="main">
+      <div class="det-hdr">
+        <div class="det-back">‹ Quay lại Đề xuất</div>
+        <div class="det-titlerow">
+          <h3>Thêm lịch đăng tháng 7</h3>
+          <span class="branch">proposal/7a3f <span class="arr">→</span> main</span>
+        </div>
+        <div class="det-meta">
+          <span><b>Trợ lý</b> gửi · 2 giờ trước</span>
+          <span><b>3</b> tệp · <span style="color:var(--forest)">+184</span> <span style="color:var(--verm)">−2</span></span>
+          <span class="stamp pending" style="transform:rotate(-2deg);font-size:9px">Chờ duyệt</span>
+        </div>
+      </div>
+      <div class="det-body">
+        <div class="det-files">
+          <div class="h">Tệp thay đổi · 3</div>
+          <div class="file on"><span class="fi">calendar.md</span><span class="d"><span class="add">+96</span></span></div>
+          <div class="file"><span class="fi">blog/jul.md</span><span class="d"><span class="add">+71</span></span></div>
+          <div class="file"><span class="fi">newsletter.md</span><span class="d"><span class="del">−2</span></span></div>
+        </div>
+        <div class="det-diff">
+          <div class="diff-modeswitch">
+            <span class="m on">Văn xuôi</span>
+            <span class="m">Cạnh nhau</span>
+            <span class="m">Git thô</span>
+          </div>
+          <div class="prose-diff">
+            <h4>calendar.md — Lịch nội dung tháng 7</h4>
+            <p>Tháng 7 tập trung vào chuỗi bài hướng dẫn và <ins class="ins">ba số bản tin hằng tuần phát hành thứ Năm</ins><del class="del"> một số bản tin chưa định ngày</del>.</p>
+            <p class="gutter add">Mở màn ngày <ins class="ins">01/07 với bài “Xu hướng nội dung nửa cuối năm”, tiếp nối 03/07 bằng số bản tin đầu tiên, rồi 05/07 là bài hướng dẫn chuyên sâu</ins>.</p>
+            <p class="gutter add">Tuần giữa tháng giữ nhịp <ins class="ins">đăng xen kẽ blog và social: 08/07 teaser, 12/07 case study, 15/07 bản tin số hai</ins>.</p>
+            <p>Phần cuối tháng <del class="del">để trống chờ kế hoạch sau</del> <ins class="ins">đã xếp đủ: 22/07 bài tổng hợp, 29/07 bản tin số ba khép tháng</ins>.</p>
+          </div>
+        </div>
+      </div>
+      <div class="det-foot">
+        <button class="btn approve">Phê duyệt &amp; merge vào main</button>
+        <button class="btn">Yêu cầu sửa</button>
+        <button class="btn reject">Từ chối</button>
+        <span class="note"><span class="seal"></span> Chỉ bạn mới merge được — agent không thể chạm <b style="color:var(--inksoft)">main</b>.</span>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

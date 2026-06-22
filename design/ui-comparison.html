@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Đối chiếu UI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Hanken+Grotesk:wght@400;500;600;700&family=Inter:wght@400;450;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --page:#101014; --panel:#17171c; --hair:#26262e;
+    --txt:#e7e5e0; --dim:#9a978f;
+  }
+  html,body{background:var(--page);color:var(--txt);font-family:'Hanken Grotesk',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  body{padding:48px clamp(20px,5vw,80px) 120px}
+
+  /* ---------- page masthead ---------- */
+  .top{max-width:1400px;margin:0 auto 44px}
+  .eyebrow{font-size:11px;letter-spacing:.28em;text-transform:uppercase;color:var(--dim);font-weight:600}
+  .top h1{font-family:'Fraunces',serif;font-weight:500;font-size:clamp(30px,4vw,52px);letter-spacing:-.02em;margin:10px 0 14px;line-height:1.02}
+  .top h1 em{font-style:italic;color:#c97b5f}
+  .top p{max-width:62ch;color:var(--dim);font-size:15.5px;line-height:1.6}
+  .legend{display:flex;gap:26px;flex-wrap:wrap;margin-top:22px;font-size:12.5px;color:var(--dim)}
+  .legend b{color:var(--txt);font-weight:600}
+
+  /* ---------- the comparison grid ---------- */
+  .grid{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:26px}
+  @media(max-width:1080px){.grid{grid-template-columns:1fr}}
+
+  .col{display:flex;flex-direction:column;gap:16px}
+  .tag{display:flex;align-items:baseline;gap:10px}
+  .tag .n{font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim)}
+  .tag h2{font-size:15px;font-weight:700;letter-spacing:.01em}
+  .tag .who{font-size:12px;color:var(--dim)}
+  .frame{border-radius:14px;overflow:hidden;border:1px solid var(--hair);height:520px;position:relative;box-shadow:0 24px 60px -28px rgba(0,0,0,.7)}
+  .verdict{font-size:13px;line-height:1.55;color:var(--dim)}
+  .verdict b{color:var(--txt)}
+  .verdict .keep{color:#7fd0a0}
+  .verdict .fix{color:#e6b85c}
+
+  /* ============================================================
+     MOCK A — COMMONS (editorial letterpress, faithful to styles.css)
+     ============================================================ */
+  .commons{
+    --paper:#f6f1e7;--paper2:#fbf8f1;--ink:#1f1b16;--inksoft:#5c5347;--inkfaint:#756b59;
+    --rule:#e2d8c6;--verm:#c43d23;--forest:#2f6b46;--forest2:#d9e6dc;--amber:#a9701a;--amber2:#efe2c9;--indigo:#36507a;
+    background:var(--paper);color:var(--ink);font-family:'Hanken Grotesk',sans-serif;display:flex}
+  .commons::after{content:"";position:absolute;top:0;left:181px;width:3px;height:100%;background:var(--verm);z-index:3}
+  .c-side{width:184px;flex-shrink:0;background:var(--paper2);padding:18px 14px;border-right:1px solid var(--rule)}
+  .c-side h3{font-family:'Fraunces',serif;font-weight:600;font-size:21px;letter-spacing:-.02em}
+  .c-side .sub{font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);margin:6px 0 14px;padding-bottom:12px;border-bottom:1px solid var(--rule)}
+  .c-side .lbl{font-size:8.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;margin-bottom:8px}
+  .c-ws{font-family:'Fraunces',serif;font-size:13px;padding:7px 9px;border-radius:6px;color:var(--inksoft)}
+  .c-ws.on{background:#fff;color:var(--ink);font-weight:500;box-shadow:var(--shadow);border:1px solid var(--rule)}
+  .c-main{flex:1;padding:18px 20px;overflow:hidden}
+  .c-tabs{display:flex;gap:22px;border-bottom:1px solid var(--rule);padding-bottom:0;margin-bottom:18px}
+  .c-tabs span{font-size:12.5px;color:var(--inkfaint);padding-bottom:10px;position:relative}
+  .c-tabs span.on{color:var(--ink);font-weight:600}
+  .c-tabs span.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--verm)}
+  .c-card{background:var(--paper2);border:1px solid var(--rule);border-radius:8px;padding:14px;margin-bottom:12px;position:relative}
+  .c-card h4{font-family:'Fraunces',serif;font-weight:500;font-size:16px;margin-bottom:6px;padding-right:70px}
+  .c-card p{font-size:12px;color:var(--inksoft);line-height:1.5}
+  .c-meta{display:flex;gap:8px;margin-top:10px;font-size:10px;color:var(--inkfaint);font-family:'JetBrains Mono',monospace}
+  .c-stamp{position:absolute;top:12px;right:12px;font-size:9px;letter-spacing:.12em;text-transform:uppercase;font-weight:700;
+    border:1.5px solid var(--amber);color:var(--amber);padding:3px 7px;border-radius:3px;transform:rotate(-4deg);opacity:.85}
+  .c-stamp.ok{border-color:var(--forest);color:var(--forest)}
+  .c-actions{display:flex;gap:8px;margin-top:12px}
+  .c-btn{font-size:11px;font-weight:600;padding:6px 12px;border-radius:5px;border:1px solid var(--rule);background:#fff;color:var(--ink)}
+  .c-btn.approve{background:var(--forest);color:#fff;border-color:var(--forest)}
+  .c-btn.reject{background:#fff;color:var(--verm);border-color:var(--verm)}
+
+  /* ============================================================
+     MOCK B — LINEAR-STYLE (dark, dense, Inter, keyboard-first)
+     ============================================================ */
+  .linear{background:#0d0e10;color:#e6e6e8;font-family:'Inter',sans-serif;display:flex;font-size:13px}
+  .l-side{width:170px;flex-shrink:0;border-right:1px solid #1c1d21;padding:14px 10px;background:#0f1012}
+  .l-side .brand{display:flex;align-items:center;gap:7px;font-weight:600;font-size:13px;margin-bottom:18px}
+  .l-side .brand i{width:16px;height:16px;border-radius:5px;background:linear-gradient(135deg,#5e6ad2,#8b94f0);display:inline-block}
+  .l-side .it{display:flex;align-items:center;gap:8px;padding:5px 8px;border-radius:6px;color:#9b9ba3;font-size:12.5px;margin-bottom:2px}
+  .l-side .it.on{background:#1b1c20;color:#e6e6e8}
+  .l-side .it i{width:13px;height:13px;border-radius:3px;background:#34353b;flex-shrink:0}
+  .l-main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .l-bar{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #1c1d21;font-size:12.5px;color:#9b9ba3}
+  .l-bar .seg{display:flex;gap:2px;margin-left:auto}
+  .l-bar .seg b{font-weight:500;color:#e6e6e8;background:#1b1c20;padding:3px 9px;border-radius:6px;font-size:11.5px}
+  .l-bar .seg span{padding:3px 9px;font-size:11.5px}
+  .l-row{display:flex;align-items:center;gap:11px;padding:9px 16px;border-bottom:1px solid #16171a}
+  .l-row .pri{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .l-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:#6f6f78;width:48px;flex-shrink:0}
+  .l-row .t{flex:1;font-size:13px;color:#dcdce0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .l-pill{font-size:10.5px;font-weight:500;padding:2px 8px;border-radius:20px;flex-shrink:0}
+  .l-av{width:18px;height:18px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#5e6ad2,#b06ad2)}
+  .l-hint{margin-top:auto;padding:10px 16px;border-top:1px solid #1c1d21;font-size:11px;color:#6f6f78;display:flex;gap:14px}
+  .kbd{font-family:'JetBrains Mono',monospace;font-size:10px;background:#1b1c20;border:1px solid #2a2b30;border-radius:4px;padding:1px 5px;color:#9b9ba3}
+
+  /* ============================================================
+     MOCK C — COPILOT WORKSPACE-STYLE (light, technical, diff-first)
+     ============================================================ */
+  .copilot{background:#ffffff;color:#1f2328;font-family:'Inter',sans-serif;display:flex;flex-direction:column;font-size:13px}
+  .cp-head{display:flex;align-items:center;gap:10px;padding:11px 16px;border-bottom:1px solid #d1d9e0;background:#f6f8fa}
+  .cp-head .dot{width:8px;height:8px;border-radius:50%;background:#1f883d}
+  .cp-head h3{font-size:14px;font-weight:600}
+  .cp-head .br{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11px;color:#59636e;background:#eaeef2;padding:3px 8px;border-radius:20px}
+  .cp-body{flex:1;display:flex;overflow:hidden}
+  .cp-files{width:172px;border-right:1px solid #d1d9e0;padding:12px 8px;font-size:12px;background:#f6f8fa}
+  .cp-files .h{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#59636e;font-weight:600;margin:0 6px 8px}
+  .cp-files .f{display:flex;align-items:center;gap:7px;padding:4px 6px;border-radius:6px;color:#1f2328;font-family:'JetBrains Mono',monospace;font-size:11px}
+  .cp-files .f.on{background:#ddf4ff}
+  .cp-files .f .m{margin-left:auto;font-weight:600}
+  .cp-files .f .add{color:#1f883d}.cp-files .f .del{color:#cf222e}
+  .cp-diff{flex:1;font-family:'JetBrains Mono',monospace;font-size:11.5px;overflow:hidden;background:#fff}
+  .cp-diff .dl{padding:2px 14px;white-space:pre;line-height:1.7}
+  .cp-diff .dl.a{background:#e6ffec}.cp-diff .dl.a::before{content:"+ ";color:#1f883d}
+  .cp-diff .dl.d{background:#ffebe9}.cp-diff .dl.d::before{content:"- ";color:#cf222e}
+  .cp-diff .dl.c{color:#59636e}.cp-diff .dl.c::before{content:"  "}
+  .cp-foot{display:flex;align-items:center;gap:10px;padding:11px 16px;border-top:1px solid #d1d9e0;background:#f6f8fa}
+  .cp-btn{font-size:12.5px;font-weight:600;padding:6px 14px;border-radius:7px;border:1px solid #d1d9e0;background:#fff}
+  .cp-btn.merge{background:#1f883d;color:#fff;border-color:#1a7f37}
+  .cp-note{margin-left:auto;font-size:11.5px;color:#59636e}
+</style>
+</head>
+<body>
+  <div class="top">
+    <div class="eyebrow">Commons · R&D đối chiếu giao diện</div>
+    <h1>Cùng một màn hình <em>“duyệt đề xuất”</em>, ba ngôn ngữ thiết kế.</h1>
+    <p>Cùng dữ liệu — một workspace lịch nội dung với các đề xuất do agent gửi lên chờ người duyệt — render theo phong cách của bạn (Commons) và hai đối thủ về cơ chế gần nhất. Mục đích: thấy rõ điểm nên <span style="color:#7fd0a0">giữ</span> và điểm nên <span style="color:#e6b85c">cân nhắc mượn</span>.</p>
+    <div class="legend">
+      <span><b>Trục so sánh:</b> mật độ thông tin · tốc độ ra quyết định · bản sắc · sự thân thiện với người phi-kỹ-thuật</span>
+    </div>
+  </div>
+
+  <div class="grid">
+
+    <!-- ============ COLUMN A: COMMONS ============ -->
+    <div class="col">
+      <div class="tag"><span class="n">A</span><h2>Commons</h2><span class="who">— hiện tại của bạn</span></div>
+      <div class="frame commons">
+        <div class="c-side">
+          <h3>Commons</h3>
+          <div class="sub">Bàn duyệt công việc tri thức</div>
+          <div class="lbl">Không gian làm việc</div>
+          <div class="c-ws on">content-calendar</div>
+          <div class="c-ws">brand-guidelines</div>
+          <div class="c-ws">q3-campaign</div>
+        </div>
+        <div class="c-main">
+          <div class="c-tabs"><span>Trợ lý</span><span class="on">Đề xuất</span><span>Tài liệu</span></div>
+          <div class="c-card">
+            <span class="c-stamp">Chờ duyệt</span>
+            <h4>Thêm lịch đăng tháng 7</h4>
+            <p>Agent soạn 12 bài cho kênh blog và bản tin, kèm ngày xuất bản đề xuất.</p>
+            <div class="c-meta"><span>proposal/7a3f</span><span>·</span><span>+184 −2</span></div>
+            <div class="c-actions">
+              <button class="c-btn approve">Phê duyệt &amp; merge</button>
+              <button class="c-btn reject">Từ chối</button>
+              <button class="c-btn">Xem diff</button>
+            </div>
+          </div>
+          <div class="c-card">
+            <span class="c-stamp ok">Đã merge</span>
+            <h4>Sửa giọng văn bản tin chào mừng</h4>
+            <p>Điều chỉnh tông giọng cho ấm hơn theo brand voice.</p>
+            <div class="c-meta"><span>proposal/2c1d</span><span>·</span><span>+22 −19</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="verdict">
+        <span class="keep">GIỮ →</span> bản sắc editorial (serif Fraunces, con dấu, giấy ấm) là thứ <b>không ai copy được</b> và tức thì truyền tải “duyệt như duyệt bản in”. Ngôn ngữ tiếng Việt phi-kỹ-thuật.<br><br>
+        <span class="fix">CÂN NHẮC →</span> mật độ thấp: 1 màn chỉ thấy ~2 đề xuất. Thiếu <b>phím tắt</b> &amp; lối quét nhanh khi có 30+ đề xuất.
+      </p>
+    </div>
+
+    <!-- ============ COLUMN B: LINEAR ============ -->
+    <div class="col">
+      <div class="tag"><span class="n">B</span><h2>Linear-style</h2><span class="who">— tốc độ &amp; mật độ</span></div>
+      <div class="frame linear">
+        <div class="l-side">
+          <div class="brand"><i></i> Commons</div>
+          <div class="it"><i></i> Trợ lý</div>
+          <div class="it on"><i></i> Đề xuất</div>
+          <div class="it"><i></i> Tài liệu</div>
+          <div class="it" style="margin-top:14px;color:#6f6f78"><i style="background:#5e6ad2"></i> content-calendar</div>
+          <div class="it" style="color:#6f6f78"><i></i> brand-guidelines</div>
+        </div>
+        <div class="l-main">
+          <div class="l-bar">Đề xuất
+            <div class="seg"><b>Tất cả</b><span>Chờ duyệt</span><span>Đã merge</span></div>
+          </div>
+          <div class="l-row"><span class="pri" style="background:#e6b85c"></span><span class="l-id">CMN-12</span><span class="t">Thêm lịch đăng tháng 7</span><span class="l-pill" style="background:#3a3214;color:#e6b85c">Chờ duyệt</span><span class="l-av"></span></div>
+          <div class="l-row"><span class="pri" style="background:#7fd0a0"></span><span class="l-id">CMN-11</span><span class="t">Sửa giọng văn bản tin chào mừng</span><span class="l-pill" style="background:#16331f;color:#7fd0a0">Đã merge</span><span class="l-av"></span></div>
+          <div class="l-row"><span class="pri" style="background:#e6b85c"></span><span class="l-id">CMN-10</span><span class="t">Cập nhật từ khoá SEO cho 5 bài</span><span class="l-pill" style="background:#3a3214;color:#e6b85c">Chờ duyệt</span><span class="l-av"></span></div>
+          <div class="l-row"><span class="pri" style="background:#9a978f"></span><span class="l-id">CMN-09</span><span class="t">Đề xuất chủ đề webinar Q3</span><span class="l-pill" style="background:#222329;color:#9b9ba3">Nháp</span><span class="l-av"></span></div>
+          <div class="l-row"><span class="pri" style="background:#e0726a"></span><span class="l-id">CMN-08</span><span class="t">Viết lại trang giới thiệu</span><span class="l-pill" style="background:#3a1c1a;color:#e0726a">Từ chối</span><span class="l-av"></span></div>
+          <div class="l-hint"><span><span class="kbd">↑↓</span> chọn</span><span><span class="kbd">E</span> duyệt</span><span><span class="kbd">X</span> từ chối</span><span><span class="kbd">⏎</span> mở diff</span></div>
+        </div>
+      </div>
+      <p class="verdict">
+        <span class="keep">MƯỢN →</span> mật độ cao (5–6 đề xuất/màn), <b>phím tắt</b>, thanh lọc trạng thái, mã định danh ngắn (CMN-12). Lý tưởng khi khối lượng đề xuất lớn.<br><br>
+        <span class="fix">RỦI RO →</span> lạnh, kỹ thuật, “SaaS giống nhau”. <b>Mất hết bản sắc</b> — đừng bê nguyên cái nhìn này.
+      </p>
+    </div>
+
+    <!-- ============ COLUMN C: COPILOT WORKSPACE ============ -->
+    <div class="col">
+      <div class="tag"><span class="n">C</span><h2>Copilot WS-style</h2><span class="who">— diff làm trung tâm</span></div>
+      <div class="frame copilot">
+        <div class="cp-head"><span class="dot"></span><h3>Thêm lịch đăng tháng 7</h3><span class="br">proposal/7a3f → main</span></div>
+        <div class="cp-body">
+          <div class="cp-files">
+            <div class="h">Tệp thay đổi · 3</div>
+            <div class="f on">calendar.md <span class="m add">+96</span></div>
+            <div class="f">blog/jul.md <span class="m add">+71</span></div>
+            <div class="f">newsletter.md <span class="m del">−2</span></div>
+          </div>
+          <div class="cp-diff">
+            <div class="dl c">## Lịch nội dung — Tháng 7</div>
+            <div class="dl c"></div>
+            <div class="dl d">| 01/07 | (trống)        |</div>
+            <div class="dl a">| 01/07 | Blog: Xu hướng |</div>
+            <div class="dl a">| 03/07 | Bản tin tuần   |</div>
+            <div class="dl a">| 05/07 | Blog: Hướng dẫn|</div>
+            <div class="dl a">| 08/07 | Social: Teaser |</div>
+            <div class="dl c">| 10/07 | (đã có)        |</div>
+            <div class="dl a">| 12/07 | Blog: Case st. |</div>
+            <div class="dl a">| 15/07 | Bản tin tuần   |</div>
+          </div>
+        </div>
+        <div class="cp-foot">
+          <button class="cp-btn merge">Phê duyệt &amp; merge</button>
+          <button class="cp-btn">Yêu cầu sửa</button>
+          <span class="cp-note">Agent đề xuất · bạn là cổng merge</span>
+        </div>
+      </div>
+      <p class="verdict">
+        <span class="keep">MƯỢN →</span> khi mở MỘT đề xuất: <b>diff song song theo tệp</b>, badge +/−, header “branch → main” làm rõ invariant của bạn một cách trực quan.<br><br>
+        <span class="fix">RỦI RO →</span> diff thô kiểu code dễ doạ người viết nội dung. Nên có chế độ <b>“diff văn xuôi”</b> (so từng câu) thay vì bảng git.
+      </p>
+    </div>
+
+  </div>
+
+  <div class="top" style="margin:64px auto 0;border-top:1px solid var(--hair);padding-top:34px">
+    <div class="eyebrow">Tổng hợp khuyến nghị</div>
+    <h1 style="font-size:clamp(22px,2.6vw,32px);margin-top:8px">Giữ bản sắc Commons làm <em>khung</em>, mượn <em>cơ chế</em> từ B &amp; C.</h1>
+    <p style="margin-top:14px">
+      <b style="color:#7fd0a0">1. Giữ:</b> toàn bộ ngôn ngữ thị giác editorial — đây là moat.&nbsp;&nbsp;
+      <b style="color:#e6b85c">2. Thêm từ Linear:</b> chế độ danh sách mật độ cao + phím tắt (E/X/⏎) cho tab Đề xuất khi nhiều mục.&nbsp;&nbsp;
+      <b style="color:#e6b85c">3. Thêm từ Copilot WS:</b> màn chi tiết một đề xuất với diff theo tệp + header “proposal → main”, nhưng dựng <b>“diff văn xuôi”</b> hợp với người viết.
+    </p>
+  </div>
+</body>
+</html>

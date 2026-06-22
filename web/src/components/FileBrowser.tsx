@@ -21,6 +21,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [uploadMsg, setUploadMsg] = useState<Notice | null>(null);
   const [uploading, setUploading] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [webhookOpen, setWebhookOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes))
@@ -43,6 +44,18 @@ export function FileBrowser({ ws }: { ws: string }) {
       .catch((e) => { if (live) setError(e instanceof Error ? e.message : String(e)); });
     return () => { live = false; };
   }, [ws, selected]);
+
+  // Close the publish/webhook popover on Escape or a click outside it.
+  useEffect(() => {
+    if (!webhookOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setWebhookOpen(false); };
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.webhook-wrap')) setWebhookOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick); };
+  }, [webhookOpen]);
 
   const saveWebhook = async () => {
     try {
@@ -111,21 +124,33 @@ export function FileBrowser({ ws }: { ws: string }) {
 
   return (
     <div className="filespane">
-      <div className="webhookbar">
-        <label>Webhook đăng bài</label>
-        <input className="newinput" placeholder="https://hook.make.com/... hoặc URL webhook Discord"
-          value={webhook} onChange={(e) => setWebhook(e.target.value)} />
-        <button className="btn save" onClick={saveWebhook}>Lưu</button>
-      </div>
-      <div className="uploadbar">
-        <div>
-          <strong>Tư liệu nguồn</strong>
-          <span className="empty"> — brief, brand-voice, ghi chú (.md, .txt, .pdf, .docx)</span>
+      <div className="docs-toolbar">
+        <div className="docs-toolbar__title">
+          Tư liệu &amp; Bản thảo
+          <small>brief · brand-voice · ghi chú · bản thảo (.md, .txt, .pdf, .docx)</small>
         </div>
-        <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
-        <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
-          {uploading ? 'Đang tải…' : '↑ Tải tài liệu lên'}
-        </button>
+        <div className="docs-toolbar__actions">
+          <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
+          <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
+            {uploading ? 'Đang tải…' : '↑ Tải lên'}
+          </button>
+          <div className="webhook-wrap">
+            <button className="btn ghost" aria-expanded={webhookOpen} aria-haspopup="dialog"
+              onClick={() => setWebhookOpen((o) => !o)}>Đăng bài ▾</button>
+            {webhookOpen && (
+              <div className="webhook-popover" role="dialog" aria-label="Cấu hình đăng bài">
+                <div className="webhook-popover__head">Cấu hình đăng bài</div>
+                <label htmlFor="webhook-input">Webhook đăng bài</label>
+                <input id="webhook-input" className="newinput"
+                  placeholder="https://hook.make.com/... hoặc URL webhook Discord"
+                  value={webhook} onChange={(e) => setWebhook(e.target.value)} />
+                <div className="webhook-popover__row">
+                  <button className="btn save" onClick={() => { void saveWebhook(); setWebhookOpen(false); }}>Lưu</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
       {uploadMsg && <p className={`notice notice--${uploadMsg.kind} notice--bar`} role="status">{uploadMsg.text}</p>}
       <div className="proposals">

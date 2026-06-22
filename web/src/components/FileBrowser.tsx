@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type FileNode, isImage } from '../api';
 import { renderMarkdown, resolvePostImage } from '../markdown';
-import { buildTree, orderRoots } from '../tree';
+import { buildTree, orderRoots, folderLabel } from '../tree';
 import { FileTree } from './FileTree';
 import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog';
 
@@ -122,6 +122,7 @@ export function FileBrowser({ ws }: { ws: string }) {
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
   const pubCount = Object.keys(published).length;
+  const section = selected && selected.includes('/') ? selected.split('/')[0] : null;
 
   return (
     <div className="filespane">
@@ -193,18 +194,21 @@ export function FileBrowser({ ws }: { ws: string }) {
           {selected && (
             <>
               <div className="doc-folio">
-                <span className="docpath">{selected}</span>
-                <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
-              </div>
-              {isMd && (
-                <div className="actions">
-                  <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
-                    {pub ? 'Đăng lại' : 'Đăng bài'}
-                  </button>
-                  {!savedWebhook && <span className="empty">Mở “Đăng bài” ở trên để đặt webhook.</span>}
-                  {pub && <span className="empty">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
+                <div className="doc-folio__id">
+                  {section && <span className="doc-folio__kick" data-accent={section}>{folderLabel(section)}</span>}
+                  <span className="docpath">{selected}</span>
+                  {pub && <span className="doc-folio__meta">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
                 </div>
-              )}
+                <div className="doc-folio__actions">
+                  {isMd && (
+                    <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}
+                      title={!savedWebhook ? 'Đặt webhook ở “Đăng bài ▾” phía trên để đăng' : undefined}>
+                      {pub ? 'Đăng lại' : 'Đăng bài'}
+                    </button>
+                  )}
+                  <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
+                </div>
+              </div>
               {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
               {content === null && (
                 <div className="doc-leaf sk-doc" aria-hidden>

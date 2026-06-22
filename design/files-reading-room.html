@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Tài liệu — Reading Room study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --paper:#f5efe4; --paper2:#faf6ee; --paper3:#fefcf7; --raise:#ffffff;
+    --ink:#211c16; --ink2:#5a5247; --ink3:#8a8071; --ink4:#ada391;
+    --line:#e8dfce; --line2:#f0e9da;
+    --seal:#bd3a21; --seal-wash:#f3e4df;
+    --gold:#a07219; --gold-wash:#efe6d0;
+    --pine:#356b4a; --pine-wash:#dde8df;
+    --stone:#8a8275;
+    --slate:#3f567c; --slate-wash:#e0e5ee;
+    --e1:0 1px 1.5px rgba(33,28,22,.04);
+    --e2:0 1px 2px rgba(33,28,22,.05), 0 6px 16px -8px rgba(33,28,22,.10);
+    --e3:0 2px 4px rgba(33,28,22,.06), 0 18px 40px -16px rgba(33,28,22,.16);
+    --serif:'Fraunces',Georgia,serif; --sans:'Hanken Grotesk',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
+  }
+  html,body{font-family:var(--sans);color:var(--ink);background:var(--paper);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"ss01","cv01"}
+  body{background-image:
+      radial-gradient(1100px 560px at 100% -8%, rgba(189,58,33,.035), transparent 58%),
+      radial-gradient(820px 460px at -8% 112%, rgba(53,107,74,.035), transparent 56%);
+    background-attachment:fixed;padding:34px clamp(16px,4vw,60px) 70px}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  ::selection{background:var(--seal-wash)}
+
+  .pagehdr{max-width:1340px;margin:0 auto var(--s5)}
+  .pagehdr .kick{font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .pagehdr h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.2vw,38px);letter-spacing:-.022em;margin:10px 0 6px;font-optical-sizing:auto}
+  .pagehdr h1 em{font-style:italic;font-weight:400;color:var(--seal)}
+  .pagehdr p{color:var(--ink2);font-size:14.5px;line-height:1.6;max-width:76ch}
+
+  /* ================= shell ================= */
+  .desk{max-width:1340px;margin:18px auto 0;border:1px solid var(--line);border-radius:18px;
+    overflow:hidden;background:var(--paper);box-shadow:var(--e3);display:flex;height:760px;position:relative}
+  .side{width:240px;flex-shrink:0;background:linear-gradient(180deg,var(--paper2),var(--paper));
+    padding:var(--s6) var(--s5);border-right:1px solid var(--line);display:flex;flex-direction:column;
+    box-shadow:inset -16px 0 28px -28px rgba(33,28,22,.18)}
+  .brand{display:flex;flex-direction:column;gap:2px;padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+  .brand h2{font-family:var(--serif);font-weight:500;font-size:25px;letter-spacing:-.02em;line-height:1}
+  .brand .seal-dot{width:6px;height:6px;border-radius:50%;background:var(--seal);display:inline-block;margin-left:1px;vertical-align:middle}
+  .brand .tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-top:8px}
+  .nav-grp{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin:var(--s6) 0 var(--s3)}
+  .ws{font-family:var(--serif);font-size:14.5px;font-weight:400;padding:9px 11px;border-radius:9px;color:var(--ink2);
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+  .ws .c{font-family:var(--mono);font-size:10px;color:var(--ink4)}
+  .ws.on{background:var(--raise);color:var(--ink);box-shadow:var(--e1);border:1px solid var(--line)}
+  .side .foot{margin-top:auto;padding-top:var(--s4);border-top:1px solid var(--line);font-size:11px;color:var(--ink3);line-height:1.6}
+  .side .foot b{color:var(--ink2);font-weight:500}
+
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .tabs{display:flex;gap:var(--s6);padding:var(--s5) var(--s6) 0;border-bottom:1px solid var(--line);flex-shrink:0}
+  .tab{font-size:13px;color:var(--ink3);padding-bottom:13px;position:relative}
+  .tab.on{color:var(--ink);font-weight:500}
+  .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--seal);border-radius:2px}
+
+  /* ============ Phần 1: toolbar mảnh ============ */
+  .docs-toolbar{display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+    padding:var(--s4) var(--s6);border-bottom:1px solid var(--line);
+    background:linear-gradient(180deg,var(--paper3),var(--paper2));flex-shrink:0;position:relative}
+  .docs-toolbar__title{font-family:var(--serif);font-weight:500;font-size:17px;letter-spacing:-.01em}
+  .docs-toolbar__title small{font-family:var(--sans);font-weight:400;font-size:11px;color:var(--ink3);margin-left:9px;letter-spacing:.01em}
+  .docs-toolbar__actions{display:flex;align-items:center;gap:9px}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 15px;border-radius:10px;border:1px solid var(--line);
+    background:var(--raise);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    box-shadow:var(--e1);transition:transform .14s,box-shadow .18s,background .18s}
+  .btn:hover{transform:translateY(-1px);box-shadow:var(--e2)}
+  .btn.ghost{background:transparent;box-shadow:none;color:var(--ink2)}
+  .btn.ghost:hover{background:var(--paper2);transform:none;box-shadow:none}
+  .btn.save{background:var(--ink);color:var(--paper3);border-color:transparent}
+  .btn.danger{color:var(--seal)}
+  .webhook-wrap{position:relative}
+  .webhook-popover{position:absolute;right:0;top:calc(100% + 8px);z-index:20;width:344px;padding:var(--s4);
+    background:var(--paper3);border:1px solid var(--line);border-radius:12px;box-shadow:var(--e3);
+    display:flex;flex-direction:column;gap:var(--s2)}
+  .webhook-popover .lh{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .webhook-popover label{font-size:12px;color:var(--ink2)}
+  .webhook-popover input{font-family:var(--mono);font-size:12px;padding:9px 11px;border:1px solid var(--line);
+    border-radius:8px;background:var(--paper2);color:var(--ink);outline:none}
+  .webhook-popover input:focus{border-color:var(--ink3);background:var(--raise)}
+  .webhook-popover .row{display:flex;justify-content:flex-end;margin-top:2px}
+
+  /* ============ two-pane ============ */
+  .twopane{flex:1;display:flex;overflow:hidden;min-height:0}
+
+  /* ============ Phần 2: rail "Mục lục" ============ */
+  .toc{width:262px;flex-shrink:0;border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--paper2)}
+  .toc__head{font-family:var(--serif);font-weight:500;font-size:15px;padding:var(--s5) var(--s5) var(--s3)}
+  .toc__scroll{flex:1;overflow:auto;padding:0 var(--s3) var(--s4)}
+  .grp{margin-bottom:var(--s2)}
+  .grp__btn{width:100%;background:none;border:none;cursor:pointer;text-align:left;
+    display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;position:relative;
+    border-left:2px solid transparent;transition:background .14s}
+  .grp__btn:hover{background:var(--paper3)}
+  .grp__btn[data-accent="posts"]{border-left-color:var(--seal)}
+  .grp__btn[data-accent="sources"]{border-left-color:var(--slate)}
+  .grp__btn[data-accent="images"]{border-left-color:var(--pine)}
+  .grp__chev{font-size:9px;color:var(--ink4);transition:transform .16s}
+  .grp.open .grp__chev{transform:rotate(90deg)}
+  .grp__name{font-family:var(--serif);text-transform:uppercase;letter-spacing:.05em;font-size:12px;font-weight:500;color:var(--ink2)}
+  .grp__count{margin-left:auto;font-family:var(--mono);font-size:9.5px;color:var(--ink4);font-variant-numeric:tabular-nums}
+  .grp__kids{padding:2px 0 4px}
+  .file{width:100%;background:none;border:none;cursor:pointer;display:flex;align-items:center;
+    padding:7px 10px 7px 26px;border-radius:7px;border-left:2px solid transparent;transition:background .14s}
+  .file:hover{background:var(--paper3)}
+  .file.on{background:var(--raise);border-left-color:var(--ink);box-shadow:var(--e1)}
+  .file__name{font-size:12.5px;color:var(--ink2);flex:0 0 auto;white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis}
+  .file.on .file__name{color:var(--ink)}
+  .file__leader{flex:1 1 auto;border-bottom:1px dotted var(--line);transform:translateY(-3px);margin:0 7px;min-width:8px}
+  .file__tag{font-family:var(--mono);font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--pine);background:var(--pine-wash);padding:2px 6px;border-radius:5px;flex:0 0 auto}
+  .empty-kid{font-size:11px;font-style:italic;color:var(--ink4);padding:6px 10px 6px 26px}
+  .toc__colophon{padding:var(--s3) var(--s5);border-top:1px solid var(--line);
+    font-size:11px;font-style:italic;color:var(--ink3)}
+
+  /* ============ Phần 3: vùng đọc "Reading Room" ============ */
+  .reader{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0;background:var(--paper)}
+  .doc-folio{position:sticky;top:0;z-index:5;display:flex;align-items:center;justify-content:space-between;gap:var(--s4);
+    padding:var(--s4) var(--s6);border-bottom:1px solid var(--line);background:var(--paper2)}
+  .doc-folio .pth{font-family:var(--mono);font-size:11.5px;color:var(--ink3);letter-spacing:.01em}
+  .reader__scroll{flex:1;overflow:auto;padding:var(--s8) var(--s6) var(--s10)}
+  .actions{max-width:760px;margin:0 auto var(--s5);display:flex;align-items:center;gap:var(--s4)}
+  .actions .btn.approve{background:var(--pine);color:#fff;border-color:transparent;
+    box-shadow:0 1px 2px rgba(53,107,74,.3),0 8px 18px -8px rgba(53,107,74,.55)}
+  .actions .note{font-size:11.5px;color:var(--ink3)}
+
+  .leaf{max-width:760px;margin:0 auto;background:var(--paper3);border:1px solid var(--line2);
+    border-radius:6px;box-shadow:var(--e3);padding:var(--s10) clamp(28px,5vw,64px)}
+  .doc{font-family:var(--serif);font-size:17px;font-weight:400;line-height:1.85;color:var(--ink);letter-spacing:-.003em;font-optical-sizing:auto}
+  .doc h1{font-family:var(--serif);font-weight:500;font-size:30px;letter-spacing:-.02em;line-height:1.15;margin:0 0 var(--s5)}
+  .doc h2{font-family:var(--serif);font-weight:500;font-size:21px;letter-spacing:-.012em;margin:var(--s8) 0 var(--s3)}
+  .doc p{margin-bottom:var(--s5)}
+  .doc > p:first-of-type::first-letter{font-family:var(--serif);font-weight:600;float:left;
+    font-size:3.4em;line-height:.78;padding:8px 10px 0 0;color:var(--ink)}
+  .doc blockquote{border:none;border-left:3px solid var(--ink3);margin:var(--s5) 0;padding:2px 0 2px 18px;
+    font-style:italic;color:var(--ink2)}
+  .doc hr{border:none;text-align:center;margin:var(--s8) 0}
+  .doc hr::before{content:"\2042";color:var(--ink4);font-size:20px;letter-spacing:.3em}
+  .doc code{font-family:var(--mono);font-size:13.5px;background:var(--paper);border:1px solid var(--line);border-radius:5px;padding:1px 5px}
+  .doc strong{font-weight:600}
+
+  /* image + non-md */
+  .leaf .post-image{display:block;max-width:100%;margin:0 auto;border:1px solid var(--line);border-radius:4px}
+  .leaf .caption{text-align:center;font-family:var(--mono);font-size:11px;color:var(--ink4);margin-top:var(--s3)}
+  .leaf pre{font-family:var(--mono);font-size:13px;line-height:1.7;white-space:pre-wrap;color:var(--ink2)}
+
+  /* empty + skeleton (variants shown below the main desk) */
+  .doc-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;
+    color:var(--ink4);font-style:italic;gap:var(--s3)}
+  .doc-empty .ic{font-size:34px;opacity:.45}
+  .skeleton{background:linear-gradient(90deg,var(--line2),var(--paper3),var(--line2));background-size:200% 100%;
+    animation:sk 1.2s ease-in-out infinite;border-radius:4px;height:12px;margin:10px 0}
+  @keyframes sk{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  .variants{max-width:1340px;margin:var(--s8) auto 0;display:grid;grid-template-columns:1fr 1fr;gap:var(--s6)}
+  .vcard{border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--paper);box-shadow:var(--e2)}
+  .vcard h4{font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);
+    padding:var(--s4) var(--s5) 0}
+  .vcard .vb{padding:var(--s5)}
+
+  .notes{max-width:1340px;margin:var(--s6) auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s5)}
+  @media(max-width:980px){.notes{grid-template-columns:1fr 1fr}.variants{grid-template-columns:1fr}}
+  .note h4{font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;
+    padding-top:11px;border-top:1.5px solid var(--seal);display:inline-block}
+  .note p{font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .note p b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+  <div class="pagehdr">
+    <div class="kick">Commons · Tab Tài liệu — Reading Room study</div>
+    <h1>Tài liệu, đọc như một <em>ấn phẩm của nhà in tư nhân</em>.</h1>
+    <p>Cùng vỏ bàn duyệt: thanh công cụ mảnh thay hai dải cũ, cây thư mục thành một bản mục lục có dấu chấm dẫn, và vùng đọc là một trang giấy canh giữa với drop-cap — hẹp đúng nhịp đọc, bóng mềm nhiều lớp, một màu nhấn dùng dè.</p>
+  </div>
+
+  <div class="desk">
+    <aside class="side">
+      <div class="brand">
+        <h2>Commons<span class="seal-dot"></span></h2>
+        <span class="tag">Bàn duyệt công việc tri thức</span>
+      </div>
+      <div class="nav-grp">Không gian làm việc</div>
+      <div class="ws on">AIOS Campaign <span class="c">6</span></div>
+      <div class="ws">Brand guidelines <span class="c">2</span></div>
+      <div class="foot">Agent đề xuất · con người duyệt.<br>Nhánh <b>main</b> là bản đã được phê duyệt.</div>
+    </aside>
+
+    <div class="main">
+      <div class="tabs"><span class="tab">Trợ lý</span><span class="tab">Đề xuất</span><span class="tab on">Tài liệu</span></div>
+
+      <!-- Phần 1: toolbar mảnh -->
+      <div class="docs-toolbar">
+        <div class="docs-toolbar__title">Tư liệu &amp; Bản thảo <small>brief · brand-voice · ghi chú · bản thảo</small></div>
+        <div class="docs-toolbar__actions">
+          <button class="btn">↑ Tải lên</button>
+          <div class="webhook-wrap">
+            <button class="btn ghost">Đăng bài ▾</button>
+            <div class="webhook-popover">
+              <div class="lh">Cấu hình đăng bài</div>
+              <label>Webhook đăng bài</label>
+              <input value="https://hook.make.com/2f9a…" />
+              <div class="row"><button class="btn save">Lưu</button></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="twopane">
+        <!-- Phần 2: rail Mục lục -->
+        <nav class="toc">
+          <div class="toc__head">Mục lục</div>
+          <div class="toc__scroll">
+            <div class="grp open">
+              <button class="grp__btn" data-accent="sources">
+                <span class="grp__chev">▸</span><span class="grp__name">Tư liệu nguồn</span><span class="grp__count">2</span>
+              </button>
+              <div class="grp__kids">
+                <button class="file"><span class="file__name">brief.md</span><span class="file__leader"></span></button>
+                <button class="file"><span class="file__name">brand-voice.md</span><span class="file__leader"></span></button>
+              </div>
+            </div>
+            <div class="grp open">
+              <button class="grp__btn" data-accent="posts">
+                <span class="grp__chev">▸</span><span class="grp__name">Bản thảo</span><span class="grp__count">3</span>
+              </button>
+              <div class="grp__kids">
+                <button class="file on"><span class="file__name">gioi-thieu.md</span><span class="file__leader"></span><span class="file__tag">pub</span></button>
+                <button class="file"><span class="file__name">calendar.md</span><span class="file__leader"></span></button>
+                <button class="file"><span class="file__name">webinar-q3.md</span><span class="file__leader"></span></button>
+              </div>
+            </div>
+            <div class="grp open">
+              <button class="grp__btn" data-accent="images">
+                <span class="grp__chev">▸</span><span class="grp__name">Hình ảnh</span><span class="grp__count">1</span>
+              </button>
+              <div class="grp__kids">
+                <button class="file"><span class="file__name">ai-everyday.png</span><span class="file__leader"></span></button>
+              </div>
+            </div>
+          </div>
+          <div class="toc__colophon">6 tài liệu</div>
+        </nav>
+
+        <!-- Phần 3: vùng đọc -->
+        <div class="reader">
+          <div class="doc-folio">
+            <span class="pth">drafts/gioi-thieu.md</span>
+            <button class="btn ghost danger">Xóa tài liệu</button>
+          </div>
+          <div class="reader__scroll">
+            <div class="actions">
+              <button class="btn approve">Đăng lại</button>
+              <span class="note">Đăng lần cuối 22/06/2026 09:14</span>
+            </div>
+            <article class="leaf">
+              <div class="doc">
+                <h1>Giới thiệu workspace AIOS Campaign</h1>
+                <p>Chào mừng đến với AIOS Campaign — không gian nơi đội ngũ nội dung và trợ lý AI cùng soạn thảo, duyệt và xuất bản. Mỗi thay đổi của trợ lý đều dừng lại chờ một con người phê duyệt trước khi chạm tới bản chính thức, nên tốc độ của máy không bao giờ vượt qua phán đoán của người.</p>
+                <p>Ý tưởng cốt lõi rất giản dị: agent <strong>đề xuất</strong>, con người <strong>duyệt</strong>. Không có đường tắt nào cho phép máy tự merge.</p>
+                <h2>Vì sao lại là một bàn duyệt</h2>
+                <p>Công việc tri thức hiếm khi đúng ngay lần đầu. Thay vì để AI ghi đè thẳng, Commons biến mỗi đề xuất thành một nhánh tách biệt — bạn đọc, so sánh, rồi mới quyết định.</p>
+                <blockquote>“Viết bài blog giới thiệu workspace, nhấn mạnh quy trình soạn – duyệt – xuất bản có AI hỗ trợ.”</blockquote>
+                <hr/>
+                <p>Khi bài đã sẵn sàng, một cú nhấn <code>Đăng bài</code> sẽ đẩy nội dung qua webhook tới kênh xuất bản của bạn.</p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- biến thể trạng thái -->
+  <div class="variants">
+    <div class="vcard">
+      <h4>Trạng thái — chưa chọn tài liệu</h4>
+      <div class="vb" style="height:200px">
+        <div class="doc-empty"><span class="ic">▢</span><p>Chọn một tài liệu để xem.</p></div>
+      </div>
+    </div>
+    <div class="vcard">
+      <h4>Trạng thái — đang tải (skeleton)</h4>
+      <div class="vb">
+        <div class="skeleton" style="width:55%;height:22px;margin-bottom:18px"></div>
+        <div class="skeleton" style="width:100%"></div>
+        <div class="skeleton" style="width:96%"></div>
+        <div class="skeleton" style="width:88%"></div>
+        <div class="skeleton" style="width:92%"></div>
+        <div class="skeleton" style="width:40%"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h4>Một thanh, không hai</h4><p>Webhook hiếm dùng nên <b>nép vào popover</b> sau “Đăng bài”. Toolbar còn lại mảnh một dòng — trả không gian cho mục lục và trang đọc.</p></div>
+    <div class="note"><h4>Mục lục, không cây file</h4><p>Dấu chấm dẫn nối tên tệp tới nhãn <b>pub</b>; folder có spine accent theo loại; hàng chọn có viền mực trái. Đáy là dòng colophon đếm tài liệu.</p></div>
+    <div class="note"><h4>Trang giấy canh giữa</h4><p>Leaf rộng <b>760px</b>, bóng mềm nhiều lớp, lề trong rộng. <b>Drop-cap</b> Fraunces mở đầu; <code>hr</code> thành asterism ⁂ kiểu ấn phẩm.</p></div>
+    <div class="note"><h4>Đồng bộ bàn duyệt</h4><p>Cùng tokens, cùng shell, cùng tab Đề xuất: hai tab trông như một sản phẩm. Folio dính trên giữ đường dẫn trong tầm mắt khi cuộn.</p></div>
+  </div>
+</body>
+</html>

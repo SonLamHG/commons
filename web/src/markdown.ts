@@ -4,7 +4,11 @@
 // inline code, links, bullet/ordered lists, blockquotes, hr, paragraphs.
 
 function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  return s
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    // Escape quotes too: image alt/src are interpolated into HTML attributes,
+    // and an unescaped " would let an attacker break out of the attribute.
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function inline(s: string, resolveSrc?: (src: string) => string): string {

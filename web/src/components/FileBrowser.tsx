@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type FileNode, isImage } from '../api';
 import { renderMarkdown, resolvePostImage } from '../markdown';
-import { buildTree } from '../tree';
+import { buildTree, orderRoots, folderLabel } from '../tree';
 import { FileTree } from './FileTree';
+import { ConfirmDialog, type ConfirmRequest } from './ConfirmDialog';
+
+type Notice = { kind: 'ok' | 'error'; text: string };
 
 export function FileBrowser({ ws }: { ws: string }) {
   const [files, setFiles] = useState<FileNode[] | null>(null);
@@ -14,9 +17,11 @@ export function FileBrowser({ ws }: { ws: string }) {
   const [savedWebhook, setSavedWebhook] = useState<string | undefined>(undefined);
   const [published, setPublished] = useState<Record<string, { publishedAt: string }>>({});
   const [publishing, setPublishing] = useState(false);
-  const [publishMsg, setPublishMsg] = useState<string | null>(null);
-  const [uploadMsg, setUploadMsg] = useState<string | null>(null);
+  const [publishMsg, setPublishMsg] = useState<Notice | null>(null);
+  const [uploadMsg, setUploadMsg] = useState<Notice | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmRequest | null>(null);
+  const [webhookOpen, setWebhookOpen] = useState(false);
   const fileInput = useRef<HTMLInputElement>(null);
 
   const loadFiles = () => api.state(ws).then((nodes) => setFiles(nodes))
@@ -40,12 +45,24 @@ export function FileBrowser({ ws }: { ws: string }) {
     return () => { live = false; };
   }, [ws, selected]);
 
+  // Close the publish/webhook popover on Escape or a click outside it.
+  useEffect(() => {
+    if (!webhookOpen) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setWebhookOpen(false); };
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.webhook-wrap')) setWebhookOpen(false);
+    };
+    document.addEventListener('keydown', onKey);
+    document.addEventListener('mousedown', onClick);
+    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onClick); };
+  }, [webhookOpen]);
+
   const saveWebhook = async () => {
     try {
       await api.setConfig(ws, webhook.trim());
       setSavedWebhook(webhook.trim() || undefined);
-      setPublishMsg('Webhook saved.');
-    } catch (e) { setPublishMsg(e instanceof Error ? e.message : String(e)); }
+      setPublishMsg({ kind: 'ok', text: 'Đã lưu webhook.' });
+    } catch (e) { setPublishMsg({ kind: 'error', text: e instanceof Error ? e.message : String(e) }); }
   };
 
   const doPublish = async () => {
@@ -54,11 +71,11 @@ export function FileBrowser({ ws }: { ws: string }) {
     try {
       await api.publish(ws, selected);
       api.published(ws).then(setPublished).catch(() => {});
-      setPublishMsg('Published ✓');
+      setPublishMsg({ kind: 'ok', text: 'Đã đăng ✓' });
     } catch (e) {
       const raw = e instanceof Error ? e.message : String(e);
       let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
-      setPublishMsg('Publish failed: ' + msg);
+      setPublishMsg({ kind: 'error', text: 'Đăng thất bại: ' + msg });
     } finally { setPublishing(false); }
   };
 
@@ -70,19 +87,17 @@ export function FileBrowser({ ws }: { ws: string }) {
     try {
       const { path } = await api.uploadFile(ws, file);
       await loadFiles();
-      setUploadMsg(`Đã thêm ${path} — agent có thể đọc làm ngữ cảnh.`);
+      setUploadMsg({ kind: 'ok', text: `Đã thêm ${path} — agent có thể đọc làm ngữ cảnh.` });
     } catch (err) {
       const raw = err instanceof Error ? err.message : String(err);
       let msg = raw; try { msg = JSON.parse(raw).error ?? raw; } catch { /* keep raw */ }
-      setUploadMsg('Upload lỗi: ' + msg);
+      setUploadMsg({ kind: 'error', text: 'Tải lên lỗi: ' + msg });
     } finally { setUploading(false); }
   };
 
-  const onDelete = async () => {
-    if (!selected) return;
-    if (!window.confirm(`Xóa "${selected}"? Hành động này không hoàn tác được.`)) return;
+  const doDelete = async (path: string) => {
     try {
-      await api.deleteFile(ws, selected);
+      await api.deleteFile(ws, path);
       setSelected(null); setContent(null);
       await loadFiles();
     } catch (err) {
@@ -92,79 +107,134 @@ export function FileBrowser({ ws }: { ws: string }) {
     }
   };
 
-  const tree = useMemo(() => buildTree(files ?? []), [files]);
+  const onDelete = () => {
+    if (!selected) return;
+    const path = selected;
+    setConfirm({
+      title: 'Xóa tài liệu?',
+      body: <><code>{path}</code> sẽ bị xóa — <b>không hoàn tác được</b>.</>,
+      confirmLabel: 'Xóa tài liệu',
+      onConfirm: () => { void doDelete(path); },
+    });
+  };
+
+  const tree = useMemo(() => orderRoots(buildTree(files ?? [])), [files]);
   const isMd = !!selected && selected.endsWith('.md');
   const pub = selected ? published[selected] : undefined;
+  const pubCount = Object.keys(published).length;
+  const section = selected && selected.includes('/') ? selected.split('/')[0] : null;
 
   return (
-    <div>
-      <div className="webhookbar">
-        <label>Publish webhook</label>
-        <input className="newinput" placeholder="https://hook.make.com/... or a Discord webhook URL"
-          value={webhook} onChange={(e) => setWebhook(e.target.value)} />
-        <button className="btn save" onClick={saveWebhook}>Save</button>
-      </div>
-      <div className="uploadbar">
-        <div>
-          <strong>Tư liệu nguồn</strong>
-          <span className="empty"> — brief, brand-voice, ghi chú (.md, .txt, .pdf, .docx)</span>
+    <div className="filespane">
+      <div className="docs-toolbar">
+        <div className="docs-toolbar__title">
+          Tư liệu &amp; Bản thảo
+          <small>brief · brand-voice · ghi chú · bản thảo (.md, .txt, .pdf, .docx)</small>
         </div>
-        <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
-        <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
-          {uploading ? 'Đang tải…' : '↑ Upload tài liệu'}
-        </button>
+        <div className="docs-toolbar__actions">
+          <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
+          <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
+            {uploading ? 'Đang tải…' : '↑ Tải lên'}
+          </button>
+          <div className="webhook-wrap">
+            <button className="btn ghost" aria-expanded={webhookOpen} aria-haspopup="dialog"
+              onClick={() => setWebhookOpen((o) => !o)}>Đăng bài ▾</button>
+            {webhookOpen && (
+              <div className="webhook-popover" role="dialog" aria-label="Cấu hình đăng bài">
+                <div className="webhook-popover__head">Cấu hình đăng bài</div>
+                <label htmlFor="webhook-input">Webhook đăng bài</label>
+                <input id="webhook-input" className="newinput"
+                  placeholder="https://hook.make.com/... hoặc URL webhook Discord"
+                  value={webhook} onChange={(e) => setWebhook(e.target.value)} />
+                <div className="webhook-popover__row">
+                  <button className="btn save" onClick={() => { void saveWebhook(); setWebhookOpen(false); }}>Lưu</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
-      {uploadMsg && <p className="empty" style={{ padding: '0 28px', color: uploadMsg.includes('lỗi') ? '#c43d23' : '#2f6b46' }}>{uploadMsg}</p>}
+      {uploadMsg && <p className={`notice notice--${uploadMsg.kind} notice--bar`} role="status">{uploadMsg.text}</p>}
       <div className="proposals">
         <div className="list">
-          <h2>Files</h2>
-          {error && <p className="empty" style={{ color: '#c43d23' }}>{error}</p>}
-          {files === null && <p className="empty">Loading…</p>}
-          {files !== null && files.length === 0 && <p className="empty">No files yet.</p>}
+          <h2>Mục lục</h2>
+          {error && <p className="notice notice--error" role="alert">{error}</p>}
+          {files === null && (
+            <div className="sk-toc" aria-hidden>
+              {['52%', '78%', '64%', '80%', '58%'].map((w, i) => (
+                <div key={i} className="sk-line" style={{ width: w, height: i === 0 ? 14 : 12 }} />
+              ))}
+            </div>
+          )}
+          {files !== null && files.length === 0 && (
+            <p className="empty">Chưa có tài liệu nào. <br />— dùng <b>↑ Tải lên</b> ở trên để thêm tư liệu nguồn.</p>
+          )}
           {files !== null && files.length > 0 && (
-            <FileTree
-              nodes={tree}
-              selected={selected}
-              onSelect={setSelected}
-              published={published}
-            />
+            <>
+              <FileTree
+                nodes={tree}
+                selected={selected}
+                onSelect={setSelected}
+                published={published}
+              />
+              <p className="list__colophon">
+                {files.filter((f) => f.type !== 'dir').length} tài liệu
+                {pubCount > 0 && <> · {pubCount} đã đăng</>}
+              </p>
+            </>
           )}
         </div>
         <div className="detail">
-          {!selected && <p className="empty">Select a file to view.</p>}
+          {!selected && (
+            <div className="doc-empty">
+              <span className="doc-empty__ic" aria-hidden>▢</span>
+              <p>Chọn một tài liệu để xem.</p>
+            </div>
+          )}
           {selected && (
             <>
-              <div className="detailbar">
-                <span className="docpath">{selected}</span>
-                <button className="btn reject ghost" onClick={onDelete}>Xóa file</button>
+              <div className="doc-folio">
+                <div className="doc-folio__id">
+                  {section && <span className="doc-folio__kick" data-accent={section}>{folderLabel(section)}</span>}
+                  <span className="docpath">{selected}</span>
+                  {pub && <span className="doc-folio__meta">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
+                </div>
+                <div className="doc-folio__actions">
+                  {isMd && (
+                    <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}
+                      title={!savedWebhook ? 'Đặt webhook ở “Đăng bài ▾” phía trên để đăng' : undefined}>
+                      {pub ? 'Đăng lại' : 'Đăng bài'}
+                    </button>
+                  )}
+                  <button className="btn reject ghost" onClick={onDelete}>Xóa tài liệu</button>
+                </div>
               </div>
-              {isMd && (
-                <div className="actions">
-                  <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}>
-                    {pub ? 'Re-publish' : 'Publish'}
-                  </button>
-                  {!savedWebhook && <span className="empty">Set a webhook above to publish.</span>}
-                  {pub && <span className="empty">Last published {new Date(pub.publishedAt).toLocaleString()}</span>}
+              {publishMsg && <p className={`notice notice--${publishMsg.kind}`} role="status">{publishMsg.text}</p>}
+              {content === null && (
+                <div className="doc-leaf sk-doc" aria-hidden>
+                  <div className="sk-line" style={{ width: '55%', height: 22 }} />
+                  {['100%', '96%', '90%', '93%', '40%'].map((w, i) => (
+                    <div key={i} className="sk-line" style={{ width: w }} />
+                  ))}
                 </div>
               )}
-              {publishMsg && <p className="empty" style={{ color: publishMsg.includes('failed') ? '#c43d23' : '#2f6b46' }}>{publishMsg}</p>}
-              {content === null && <p className="empty">Loading…</p>}
               {content !== null && (
                 isImage(selected)
-                  ? <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                  ? <figure className="doc-leaf doc-leaf--image">
+                      <img className="post-image" src={api.assetUrl(ws, selected)} alt={selected} />
+                      <figcaption className="doc-leaf__caption">{selected}</figcaption>
+                    </figure>
                   : isMd
-                    ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
-                    : (
-                      <div className="diff-file">
-                        <h4>{selected}</h4>
-                        <pre className="diff-body" style={{ padding: '12px' }}>{content}</pre>
-                      </div>
-                    )
+                    ? <article className="doc-leaf">
+                        <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(content, resolvePostImage(selected, (p) => api.assetUrl(ws, p))) }} />
+                      </article>
+                    : <div className="doc-leaf doc-leaf--text"><pre className="doc-pre">{content}</pre></div>
               )}
             </>
           )}
         </div>
       </div>
+      <ConfirmDialog request={confirm} onClose={() => setConfirm(null)} />
     </div>
   );
 }

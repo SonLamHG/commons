@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { api } from '../api';
+import { api, friendlyError } from '../api';
 
 export function Login() {
   const [email, setEmail] = useState('');
@@ -11,28 +11,28 @@ export function Login() {
     e.preventDefault();
     setBusy(true); setError(null);
     try { await api.auth.request(email.trim()); setSent(true); }
-    catch (err) { setError(err instanceof Error ? err.message : String(err)); }
+    catch (err) { setError(friendlyError(err)); }
     finally { setBusy(false); }
   };
 
   return (
     <div className="login">
       <div className="login-card">
-        <span className="kicker">The Commons Review Desk</span>
+        <span className="kicker">Bàn duyệt Commons</span>
         {sent ? (
           <>
-            <h2 className="login-head">Check your inbox<span className="period">.</span></h2>
+            <h2 className="login-head">Kiểm tra hộp thư<span className="period">.</span></h2>
             <p className="login-lede">
-              If <b>{email}</b> is on the guest list, a one-time sign-in link is on its way.
-              It expires in 15 minutes.
+              Nếu <b>{email}</b> nằm trong danh sách mời, một liên kết đăng nhập dùng một lần
+              đang được gửi tới. Liên kết hết hạn sau 15 phút.
             </p>
           </>
         ) : (
           <>
-            <h2 className="login-head">Sign in<span className="period">.</span></h2>
+            <h2 className="login-head">Đăng nhập<span className="period">.</span></h2>
             <p className="login-lede">
-              Commons is invite-only during the beta. Enter your email and we’ll send a
-              one-time sign-in link.
+              Commons đang trong giai đoạn beta theo lời mời. Nhập email của bạn, chúng tôi sẽ gửi
+              một liên kết đăng nhập dùng một lần.
             </p>
             <form className="login-form" onSubmit={submit}>
               <input
@@ -41,10 +41,10 @@ export function Login() {
                 value={email} onChange={(e) => setEmail(e.target.value)}
               />
               <button className="btn approve" type="submit" disabled={busy || !email.trim()}>
-                {busy ? 'Sending…' : 'Send link'}
+                {busy ? 'Đang gửi…' : 'Gửi liên kết'}
               </button>
             </form>
-            {error && <p className="empty" style={{ color: 'var(--vermilion)' }}>{error}</p>}
+            {error && <p className="notice notice--error" role="alert">{error}</p>}
           </>
         )}
       </div>

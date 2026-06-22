@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Bàn duyệt — refined</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    /* surfaces — a quieter, more graded paper stack */
+    --paper:#f5efe4; --paper2:#faf6ee; --paper3:#fefcf7; --raise:#ffffff;
+    /* ink */
+    --ink:#211c16; --ink2:#5a5247; --ink3:#8a8071; --ink4:#ada391;
+    /* hairlines — finer, lower contrast */
+    --line:#e8dfce; --line2:#f0e9da;
+    /* the single accent, used sparingly */
+    --seal:#bd3a21; --seal-wash:#f3e4df;
+    /* status — desaturated, refined */
+    --gold:#a07219; --gold-wash:#efe6d0;
+    --pine:#356b4a; --pine-wash:#dde8df;
+    --stone:#8a8275;
+    --slate:#3f567c; --slate-wash:#e0e5ee;
+    /* elevation — soft, layered, never harsh */
+    --e1:0 1px 1.5px rgba(33,28,22,.04);
+    --e2:0 1px 2px rgba(33,28,22,.05), 0 6px 16px -8px rgba(33,28,22,.10);
+    --e3:0 2px 4px rgba(33,28,22,.06), 0 18px 40px -16px rgba(33,28,22,.16);
+    --serif:'Fraunces',Georgia,serif; --sans:'Hanken Grotesk',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    /* spacing scale (4px) */
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
+  }
+  html,body{font-family:var(--sans);color:var(--ink);background:var(--paper);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"ss01","cv01"}
+  body{background-image:
+      radial-gradient(1100px 560px at 100% -8%, rgba(189,58,33,.035), transparent 58%),
+      radial-gradient(820px 460px at -8% 112%, rgba(53,107,74,.035), transparent 56%);
+    background-attachment:fixed;padding:34px clamp(16px,4vw,60px) 70px}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  ::selection{background:var(--seal-wash)}
+
+  .pagehdr{max-width:1340px;margin:0 auto var(--s5)}
+  .pagehdr .kick{font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .pagehdr h1{font-family:var(--serif);font-weight:400;font-size:clamp(26px,3.2vw,38px);letter-spacing:-.022em;margin:10px 0 6px;font-optical-sizing:auto}
+  .pagehdr h1 em{font-style:italic;font-weight:400;color:var(--seal)}
+  .pagehdr p{color:var(--ink2);font-size:14.5px;line-height:1.6;max-width:76ch}
+
+  /* ================= shell ================= */
+  .desk{max-width:1340px;margin:18px auto 0;border:1px solid var(--line);border-radius:18px;
+    overflow:hidden;background:var(--paper);box-shadow:var(--e3);display:flex;height:734px;position:relative}
+
+  /* sidebar — restrained, no loud spine; a single hairline + faint inner shade */
+  .side{width:240px;flex-shrink:0;background:linear-gradient(180deg,var(--paper2),var(--paper));
+    padding:var(--s6) var(--s5);border-right:1px solid var(--line);display:flex;flex-direction:column;
+    box-shadow:inset -16px 0 28px -28px rgba(33,28,22,.18)}
+  .brand{display:flex;flex-direction:column;gap:2px;padding-bottom:var(--s4);border-bottom:1px solid var(--line)}
+  .brand h2{font-family:var(--serif);font-weight:500;font-size:25px;letter-spacing:-.02em;line-height:1}
+  .brand .seal-dot{width:6px;height:6px;border-radius:50%;background:var(--seal);display:inline-block;margin-left:1px;vertical-align:middle}
+  .brand .tag{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink3);margin-top:8px}
+  .nav-grp{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin:var(--s6) 0 var(--s3)}
+  .ws{font-family:var(--serif);font-size:14.5px;font-weight:400;padding:9px 11px;border-radius:9px;color:var(--ink2);
+    display:flex;align-items:baseline;justify-content:space-between;gap:8px;transition:background .18s,color .18s}
+  .ws .c{font-family:var(--mono);font-size:10px;color:var(--ink4);font-variant-numeric:tabular-nums}
+  .ws.on{background:var(--raise);color:var(--ink);box-shadow:var(--e1);border:1px solid var(--line)}
+  .ws:not(.on):hover{background:var(--paper2);color:var(--ink)}
+  .side .foot{margin-top:auto;padding-top:var(--s4);border-top:1px solid var(--line);font-size:11px;color:var(--ink3);line-height:1.6}
+  .side .foot b{color:var(--ink2);font-weight:500}
+
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+  .tabs{display:flex;gap:var(--s6);padding:var(--s5) var(--s6) 0;border-bottom:1px solid var(--line);flex-shrink:0}
+  .tab{font-size:13px;color:var(--ink3);padding-bottom:13px;position:relative;letter-spacing:.005em;transition:color .18s}
+  .tab:hover{color:var(--ink2)}
+  .tab.on{color:var(--ink);font-weight:500}
+  .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--seal);border-radius:2px}
+
+  .twopane{flex:1;display:flex;overflow:hidden;min-height:0}
+
+  /* ================= queue ================= */
+  .queue{width:322px;flex-shrink:0;border-right:1px solid var(--line);display:flex;flex-direction:column;background:var(--paper)}
+  .q-top{padding:var(--s5) var(--s5) var(--s4)}
+  .q-head{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:var(--s4)}
+  .q-head h3{font-family:var(--serif);font-weight:500;font-size:17px;letter-spacing:-.01em}
+  .q-head .count{font-family:var(--mono);font-size:11px;color:var(--ink3);font-variant-numeric:tabular-nums}
+  .q-head .count b{color:var(--ink)}
+  .meter{height:3px;border-radius:3px;background:var(--line);overflow:hidden}
+  .meter > i{display:block;height:100%;width:60%;border-radius:3px;background:linear-gradient(90deg,#c0851f,var(--gold))}
+  .q-sub{font-size:11px;color:var(--ink3);margin-top:9px;letter-spacing:.005em}
+  .q-sub b{color:var(--gold);font-weight:600}
+
+  .q-scroll{flex:1;overflow:auto;padding-bottom:var(--s4)}
+  .q-grp{padding:var(--s5) var(--s5) 0}
+  .q-grp .gh{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:600;
+    display:flex;align-items:center;gap:9px;margin-bottom:var(--s2)}
+  .q-grp .gh .n{font-family:var(--mono);font-weight:500;color:var(--ink4);margin-left:auto;font-variant-numeric:tabular-nums}
+
+  /* refined queue row — NO rotated stamp here; calm status keyline + dot */
+  .qrow{display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;
+    padding:var(--s3) var(--s3);border-radius:11px;position:relative;transition:background .16s;margin-top:2px}
+  .qrow:hover{background:var(--paper2)}
+  .qrow.on{background:var(--raise);box-shadow:var(--e2);border:1px solid var(--line)}
+  .qrow.on::before{content:"";position:absolute;left:0;top:14px;bottom:14px;width:2.5px;border-radius:3px;background:var(--seal)}
+  .qrow .top{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+  .qrow .status{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;display:flex;align-items:center;gap:6px}
+  .qrow .status .dot{width:6px;height:6px;border-radius:50%}
+  .st-gold{color:var(--gold)}.st-gold .dot{background:var(--gold)}
+  .st-pine{color:var(--pine)}.st-pine .dot{background:var(--pine)}
+  .st-stone{color:var(--stone)}.st-stone .dot{background:var(--stone)}
+  .qrow .id{font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-left:auto;font-variant-numeric:tabular-nums}
+  .qrow .ttl{font-family:var(--serif);font-size:14.5px;font-weight:400;color:var(--ink);line-height:1.3;letter-spacing:-.005em;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .qrow .meta{display:flex;align-items:center;gap:10px;margin-top:9px;font-family:var(--mono);font-size:10px;color:var(--ink4);font-variant-numeric:tabular-nums}
+  .qrow .meta .a{color:var(--pine)}.qrow .meta .d{color:var(--seal)}
+  .qrow .meta .when{margin-left:auto;font-family:var(--sans);letter-spacing:.01em}
+
+  /* ================= review ================= */
+  .review{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative;min-width:0}
+  .r-bar{display:flex;align-items:center;gap:var(--s4);flex-wrap:wrap;padding:var(--s5) var(--s6) var(--s4);
+    border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--paper3),var(--paper2))}
+  .r-bar .title{flex:1;min-width:220px}
+  .r-bar h3{font-family:var(--serif);font-weight:500;font-size:21px;letter-spacing:-.015em;line-height:1.25;font-optical-sizing:auto}
+  .r-meta{font-family:var(--mono);font-size:10.5px;color:var(--ink3);margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+  .r-meta .arrow{color:var(--seal)}
+  .r-actions{display:flex;gap:9px;align-items:center}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:500;padding:9px 16px;border-radius:10px;border:1px solid var(--line);
+    background:var(--raise);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    box-shadow:var(--e1);transition:transform .14s,box-shadow .18s,background .18s}
+  .btn:hover{transform:translateY(-1px);box-shadow:var(--e2)}
+  .btn .k{font-family:var(--mono);font-size:9.5px;color:var(--ink4);border:1px solid var(--line);border-radius:4px;padding:1px 5px;background:var(--paper2)}
+  .btn.approve{background:var(--pine);color:#fff;border-color:transparent;box-shadow:0 1px 2px rgba(53,107,74,.3),0 8px 18px -8px rgba(53,107,74,.55)}
+  .btn.approve:hover{box-shadow:0 1px 2px rgba(53,107,74,.3),0 12px 24px -8px rgba(53,107,74,.6)}
+  .btn.approve .k{color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.12)}
+  .btn.ghost{background:transparent;box-shadow:none;color:var(--ink2)}
+  .btn.ghost:hover{background:var(--paper2);transform:none;box-shadow:none}
+  .btn.danger{color:var(--seal)}
+
+  .r-body{flex:1;display:flex;overflow:hidden;min-height:0}
+
+  /* file ToC — quiet, indexed */
+  .toc{width:188px;flex-shrink:0;border-right:1px solid var(--line);padding:var(--s5) var(--s3);overflow:auto;background:var(--paper2)}
+  .toc .th{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink3);font-weight:600;margin:0 8px var(--s3)}
+  .toc a{display:flex;align-items:baseline;gap:9px;padding:8px 9px;border-radius:8px;font-size:12px;color:var(--ink2);text-decoration:none;transition:background .14s,color .14s}
+  .toc a:hover{background:var(--paper3);color:var(--ink)}
+  .toc a.on{background:var(--raise);color:var(--ink);box-shadow:var(--e1)}
+  .toc a .ix{font-family:var(--mono);font-size:9px;color:var(--ink4)}
+  .toc a .nm{font-family:var(--serif);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.005em}
+  .toc a .dd{font-family:var(--mono);font-size:9px;font-variant-numeric:tabular-nums}
+  .toc a .dd .a{color:var(--pine)}.toc a .dd .d{color:var(--seal)}
+
+  .r-scroll{flex:1;min-width:0;overflow:auto;padding:var(--s6) var(--s10) var(--s10)}
+  .r-scroll > *{max-width:680px}
+
+  /* agent context — refined, quiet slate keyline */
+  .ctx{border:1px solid var(--line);border-radius:13px;background:linear-gradient(180deg,var(--paper3),var(--paper2));
+    padding:var(--s4) var(--s5);margin-bottom:var(--s8);position:relative;overflow:hidden;box-shadow:var(--e1)}
+  .ctx::before{content:"";position:absolute;left:0;top:0;bottom:0;width:2.5px;background:var(--slate);opacity:.55}
+  .ctx .ch{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--slate);font-weight:600;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+  .ctx .ch .ic{width:14px;height:14px;border-radius:4px;background:var(--slate-wash);display:grid;place-items:center;color:var(--slate);font-size:9px}
+  .ctx blockquote{font-family:var(--serif);font-style:italic;font-weight:400;font-size:15px;color:var(--ink);line-height:1.6;border:none;padding:0}
+  .ctx .sum{font-size:12.5px;color:var(--ink2);margin-top:11px;line-height:1.6;padding-top:11px;border-top:1px solid var(--line2)}
+  .ctx .sum b{color:var(--ink);font-weight:600}
+
+  /* mode switch — segmented, refined */
+  .modes{display:inline-flex;background:var(--paper2);border:1px solid var(--line);border-radius:11px;padding:3px;margin-bottom:var(--s6);gap:2px}
+  .modes .m{font-size:12px;font-weight:500;padding:7px 15px;color:var(--ink2);cursor:pointer;border:none;background:none;border-radius:8px;transition:all .18s;letter-spacing:.005em}
+  .modes .m:hover{color:var(--ink)}
+  .modes .m.on{background:var(--raise);color:var(--ink);box-shadow:var(--e1)}
+
+  /* file plates */
+  .plate{margin-bottom:var(--s10)}
+  .plate .ph{display:flex;align-items:baseline;gap:var(--s3);padding-bottom:var(--s3);margin-bottom:var(--s4);border-bottom:1px solid var(--line2)}
+  .plate .ph .ix{font-family:var(--mono);font-size:11px;color:var(--ink4);font-variant-numeric:tabular-nums}
+  .plate .ph .lbl{font-size:8.5px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:3px 8px;border-radius:5px}
+  .lbl.new{color:var(--slate);background:var(--slate-wash)}
+  .lbl.mod{color:var(--gold);background:var(--gold-wash)}
+  .plate .ph .pth{font-family:var(--mono);font-size:11px;color:var(--ink3);margin-left:auto}
+
+  .prose{font-family:var(--serif);font-size:17px;font-weight:400;line-height:1.9;color:var(--ink);letter-spacing:-.003em;font-optical-sizing:auto}
+  .prose p{margin-bottom:var(--s4)}
+  .ins{background:var(--pine-wash);color:#234a32;border-radius:3px;padding:.5px 3px;box-shadow:inset 0 -1.5px 0 rgba(53,107,74,.3)}
+  .del{background:var(--seal-wash);color:#7a2616;border-radius:3px;padding:.5px 3px;text-decoration:line-through;text-decoration-color:rgba(189,58,33,.5)}
+  .fold{font-family:var(--sans);font-size:11.5px;color:var(--ink3);background:var(--paper2);border:1px solid var(--line);
+    border-radius:9px;padding:9px 13px;margin:var(--s2) 0 var(--s4);cursor:pointer;display:flex;align-items:center;gap:9px;transition:background .16s}
+  .fold:hover{background:var(--paper3)}
+  .fold .ln{flex:1;height:1px;background:var(--line)}
+
+  /* footer — sequential nav */
+  .r-foot{flex-shrink:0;display:flex;align-items:center;gap:var(--s4);padding:var(--s3) var(--s6);
+    border-top:1px solid var(--line);background:var(--paper2);font-size:11.5px;color:var(--ink3)}
+  .r-foot .seal{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+  .r-foot b{color:var(--ink2);font-weight:500}
+  .r-foot .nav{display:flex;gap:7px;margin-left:auto}
+  .r-foot .nav .btn{padding:7px 12px;font-size:12px}
+
+  /* undo toast — elegant dark slab */
+  .toast{position:absolute;left:50%;bottom:62px;transform:translateX(-50%);
+    background:linear-gradient(180deg,#2a241d,#211c16);color:var(--paper3);border-radius:13px;
+    padding:12px 14px 12px 18px;display:flex;align-items:center;gap:var(--s4);font-size:13px;
+    box-shadow:var(--e3);z-index:8;border:1px solid rgba(255,255,255,.06)}
+  .toast .tick{width:18px;height:18px;border-radius:50%;background:var(--pine);display:grid;place-items:center;color:#fff;font-size:10px;flex-shrink:0}
+  .toast b{color:#a9dcbb;font-weight:500}
+  .toast .undo{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:var(--paper3);
+    font-family:var(--sans);font-weight:500;font-size:12px;padding:6px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:7px}
+  .toast .undo .c{font-variant-numeric:tabular-nums;color:var(--ink4);color:rgba(255,255,255,.5)}
+
+  /* annotations */
+  .notes{max-width:1340px;margin:var(--s6) auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s5)}
+  @media(max-width:980px){.notes{grid-template-columns:1fr 1fr}}
+  .note h4{font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;
+    padding-top:11px;border-top:1.5px solid var(--seal);display:inline-block}
+  .note p{font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .note p b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+  <div class="pagehdr">
+    <div class="kick">Commons · Redesign P0 — refined</div>
+    <h1>Bàn duyệt, dựng lại với <em>sự tinh xảo của một nhà in tư nhân</em>.</h1>
+    <p>Cùng kiến trúc hai khung, nhưng siết về thủ công: con dấu chỉ xuất hiện như chữ ký ở chỗ trang trọng nhất — hàng đợi dùng dấu trạng thái điềm tĩnh; hairline mảnh, nhịp khoảng cách 4px nhất quán, một màu nhấn duy nhất dùng dè, đổ bóng mềm nhiều lớp, và Fraunces tinh chỉnh quang học.</p>
+  </div>
+
+  <div class="desk">
+    <aside class="side">
+      <div class="brand">
+        <h2>Commons<span class="seal-dot"></span></h2>
+        <span class="tag">Bàn duyệt công việc tri thức</span>
+      </div>
+      <div class="nav-grp">Không gian làm việc</div>
+      <div class="ws on">AIOS Campaign <span class="c">3</span></div>
+      <div class="ws">Brand guidelines <span class="c">1</span></div>
+      <div class="foot">Agent đề xuất · con người duyệt.<br>Nhánh <b>main</b> là bản đã được phê duyệt.</div>
+    </aside>
+
+    <div class="main">
+      <div class="tabs"><span class="tab">Trợ lý</span><span class="tab on">Đề xuất</span><span class="tab">Tài liệu</span></div>
+
+      <div class="twopane">
+        <!-- queue -->
+        <div class="queue">
+          <div class="q-top">
+            <div class="q-head">
+              <h3>Hàng đợi duyệt</h3>
+              <span class="count"><b>2</b>&thinsp;/&thinsp;5</span>
+            </div>
+            <div class="meter"><i></i></div>
+            <div class="q-sub">Còn <b>2 đề xuất</b> chờ bạn duyệt</div>
+          </div>
+          <div class="q-scroll">
+            <div class="q-grp">
+              <div class="gh">Cần bạn duyệt <span class="n">2</span></div>
+              <button class="qrow on">
+                <div class="top"><span class="status st-gold"><span class="dot"></span>Chờ duyệt</span><span class="id">7a3f</span></div>
+                <div class="ttl">Blog post: Giới thiệu workspace AIOS Campaign</div>
+                <div class="meta"><span class="a">+184</span><span class="d">−29</span><span>3 tệp</span><span class="when">2 giờ trước</span></div>
+              </button>
+              <button class="qrow">
+                <div class="top"><span class="status st-gold"><span class="dot"></span>Chờ duyệt</span><span class="id">9b2e</span></div>
+                <div class="ttl">Cập nhật từ khoá SEO cho 5 bài blog</div>
+                <div class="meta"><span class="a">+47</span><span class="d">−31</span><span>5 tệp</span><span class="when">hôm qua</span></div>
+              </button>
+            </div>
+            <div class="q-grp">
+              <div class="gh">Đã xử lý <span class="n">3</span></div>
+              <button class="qrow">
+                <div class="top"><span class="status st-pine"><span class="dot"></span>Đã merge</span><span class="id">2c1d</span></div>
+                <div class="ttl">Sửa giọng văn bản tin chào mừng</div>
+                <div class="meta"><span>1 tệp</span><span class="when">3 ngày trước</span></div>
+              </button>
+              <button class="qrow">
+                <div class="top"><span class="status st-pine"><span class="dot"></span>Đã merge</span><span class="id">5f80</span></div>
+                <div class="ttl">Đề xuất chủ đề webinar Q3</div>
+                <div class="meta"><span>2 tệp</span><span class="when">3 ngày trước</span></div>
+              </button>
+              <button class="qrow">
+                <div class="top"><span class="status st-stone"><span class="dot"></span>Từ chối</span><span class="id">1a44</span></div>
+                <div class="ttl">Viết lại trang giới thiệu</div>
+                <div class="meta"><span>1 tệp</span><span class="when">tuần trước</span></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- review -->
+        <div class="review">
+          <div class="r-bar">
+            <div class="title">
+              <h3>Blog post: Giới thiệu workspace AIOS Campaign</h3>
+              <div class="r-meta">proposal/7a3f <span class="arrow">→</span> main &nbsp;·&nbsp; 3 tệp &nbsp;·&nbsp; 1 mới · 1 sửa · 1 gỡ bỏ</div>
+            </div>
+            <div class="r-actions">
+              <button class="btn approve">Duyệt &amp; merge <span class="k">E</span></button>
+              <button class="btn danger">Từ chối <span class="k">X</span></button>
+            </div>
+          </div>
+
+          <div class="r-body">
+            <nav class="toc">
+              <div class="th">Tệp · 3</div>
+              <a class="on"><span class="ix">01</span><span class="nm">gioi-thieu.md</span><span class="dd"><span class="a">+96</span></span></a>
+              <a><span class="ix">02</span><span class="nm">calendar.md</span><span class="dd"><span class="a">+88</span> <span class="d">−27</span></span></a>
+              <a><span class="ix">03</span><span class="nm">ai-everyday.png</span><span class="dd"><span class="d">gỡ</span></span></a>
+            </nav>
+
+            <div class="r-scroll">
+              <div class="ctx">
+                <div class="ch"><span class="ic">✦</span>Trợ lý tạo đề xuất từ yêu cầu</div>
+                <blockquote>“Viết bài blog giới thiệu workspace AIOS Campaign, nhấn mạnh quy trình soạn – duyệt – xuất bản có AI hỗ trợ.”</blockquote>
+                <div class="sum">Tạo bài mới <b>gioi-thieu.md</b>, cập nhật lịch nội dung, và gỡ bản nháp cũ <b>ai-everyday</b> không còn dùng.</div>
+              </div>
+
+              <div class="modes">
+                <button class="m on">Văn xuôi</button>
+                <button class="m">Bản đọc</button>
+                <button class="m">Thay đổi</button>
+              </div>
+
+              <div class="plate">
+                <div class="ph"><span class="ix">01</span><span class="lbl new">Mới</span><span class="pth">drafts/gioi-thieu.md</span></div>
+                <div class="prose">
+                  <p><span class="ins">Chào mừng đến với AIOS Campaign — không gian nơi đội ngũ và AI cùng soạn thảo, duyệt và xuất bản nội dung. Mỗi thay đổi của trợ lý đều chờ con người phê duyệt trước khi chạm tới bản chính thức.</span></p>
+                </div>
+              </div>
+
+              <div class="plate">
+                <div class="ph"><span class="ix">02</span><span class="lbl mod">Sửa</span><span class="pth">calendar.md</span></div>
+                <div class="prose">
+                  <p>Lịch tháng 7 tập trung vào chuỗi bài hướng dẫn và <ins class="ins">ba số bản tin hằng tuần phát hành thứ Năm</ins><del class="del"> một vài bản tin chưa định ngày</del>.</p>
+                  <div class="fold"><span class="ln"></span>14 dòng không đổi<span class="ln"></span></div>
+                  <p>Cuối tháng <del class="del">để trống chờ kế hoạch</del> <ins class="ins">đã xếp đủ: 22/07 bài tổng hợp, 29/07 bản tin khép tháng</ins>.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="r-foot">
+            <span class="seal"></span> Chỉ bạn mới merge được — agent không thể chạm <b>main</b>.
+            <div class="nav">
+              <button class="btn ghost">‹ Trước <span class="k">K</span></button>
+              <button class="btn ghost">Kế tiếp <span class="k">J</span> ›</button>
+            </div>
+          </div>
+
+          <div class="toast">
+            <span class="tick">✓</span>
+            Đã merge <b>“Sửa giọng bản tin”</b> vào main.
+            <button class="undo">Hoàn tác <span class="c">5s</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h4>Kiềm chế con dấu</h4><p>Con dấu xoay chỉ là <b>cử chỉ chữ ký</b> — bỏ khỏi hàng đợi đông đúc, thay bằng dấu trạng thái điềm tĩnh. List đọc gọn gàng, không rối.</p></div>
+    <div class="note"><h4>Nhịp & hairline</h4><p>Thang khoảng cách <b>4px</b> nhất quán, hairline mảnh hơn, bo góc lớn mềm, đổ bóng nhiều lớp rất nhẹ — cảm giác chỉn chu, đắt tiền.</p></div>
+    <div class="note"><h4>Một màu nhấn</h4><p>Chỉ <b>vermilion</b> làm nhấn, dùng dè (sống chọn, tab, mũi tên). Trạng thái dùng tông trầm desaturated, không chói.</p></div>
+    <div class="note"><h4>Typography</h4><p>Fraunces optical-sizing + tracking âm tinh chỉnh; số liệu dùng <b>tabular mono</b> thẳng cột. Trích dẫn agent in nghiêng nhã.</p></div>
+  </div>
+</body>
+</html>

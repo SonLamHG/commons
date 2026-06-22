@@ -19,6 +19,13 @@ export interface Proposal {
   title: string;
   status: ProposalStatus;
   createdAt: string;       // ISO
+  prompt?: string;         // the human request the agent acted on, if any
+}
+
+export interface ProposalStats {
+  files: number;
+  additions: number;
+  deletions: number;
 }
 
 export type MergeResult =
@@ -40,6 +47,8 @@ export interface Engine {
   readFileBytes(workspaceId: string, path: string): Promise<Buffer>;
   submitProposal(workspaceId: string, proposalId: string, message: string): Promise<void>;
   diffProposal(workspaceId: string, proposalId: string): Promise<FileDiff[]>;
+  proposalStats(workspaceId: string, proposalId: string): Promise<ProposalStats>;
+  setProposalPrompt(workspaceId: string, proposalId: string, prompt: string): Promise<void>;
   mergeProposal(workspaceId: string, proposalId: string): Promise<MergeResult>;
   discardProposal(workspaceId: string, proposalId: string): Promise<void>;
   listProposals(workspaceId: string): Promise<Proposal[]>;

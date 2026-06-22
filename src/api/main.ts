@@ -7,6 +7,7 @@ import { buildApi } from './server.js';
 import { createDb } from '../db/index.js';
 import { createClaudeRunner } from '../agent/runner.js';
 import { mailerFromEnv } from '../auth/mailer.js';
+import { seedOnboarding } from '../onboarding/seed.js';
 import { loadEnv } from '../util/env.js';
 
 loadEnv(); // pick up secrets/env from a project-root .env before reading process.env
@@ -29,14 +30,27 @@ for (const email of (process.env.COMMONS_INVITES ?? '').split(',').map((s) => s.
   db.addInvite(email);
 }
 
+const registry = createEngineRegistry(root);
+const serializer = new WorkspaceSerializer();
+
+// Seed a demo workspace + a waiting proposal into each new tenant (on by default,
+// disable with COMMONS_SEED_ONBOARDING=false) so first-time users have something
+// to review immediately.
+const seedOnboardingEnabled = process.env.COMMONS_SEED_ONBOARDING !== 'false';
+const seedTenant = seedOnboardingEnabled
+  ? (tenantId: string) => seedOnboarding(registry.forTenant(tenantId), serializer)
+  : undefined;
+
 const app = buildApi({
-  registry: createEngineRegistry(root),
-  serializer: new WorkspaceSerializer(),
+  registry,
+  serializer,
   db,
   authSecret,
   appUrl,
   mailer: mailerFromEnv(),
   agentRunner: createClaudeRunner(),
+  openSignup: process.env.COMMONS_OPEN_SIGNUP === 'true',
+  seedTenant,
 });
 
 const dist = join(process.cwd(), 'web', 'dist');

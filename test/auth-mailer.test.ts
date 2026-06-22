@@ -9,13 +9,13 @@ describe('auth/mailer', () => {
   });
 
   it('resend mailer POSTs the expected payload', async () => {
-    const fetchMock = vi.fn(async () => new Response('{}', { status: 200 }));
+    const fetchMock = vi.fn(async (_url: string, _init: RequestInit) => new Response('{}', { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
 
     await resendMailer('key-123', 'noreply@commons.app').send('a@x.com', 'Hi', 'Body');
 
     expect(fetchMock).toHaveBeenCalledOnce();
-    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    const [url, init] = fetchMock.mock.calls[0];
     expect(url).toBe('https://api.resend.com/emails');
     expect((init.headers as Record<string, string>).authorization).toBe('Bearer key-123');
     expect(JSON.parse(init.body as string)).toEqual({

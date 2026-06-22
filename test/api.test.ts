@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import Fastify from 'fastify';
+import Fastify, { type InjectOptions } from 'fastify';
 import { createEngineRegistry } from '../src/engine/registry.js';
 import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { buildApi } from '../src/api/server.js';
@@ -54,7 +54,7 @@ afterEach(async () => {
 
 const json = (r: { payload: string }) => JSON.parse(r.payload);
 /** inject with the session cookie attached (auth required on every /api route). */
-const inj = (opts: Parameters<typeof app.inject>[0] & { headers?: Record<string, string> }) =>
+const inj = (opts: InjectOptions & { headers?: Record<string, string> }) =>
   app.inject({ ...opts, headers: { cookie, ...(opts.headers ?? {}) } });
 
 describe('security', () => {
@@ -76,6 +76,16 @@ describe('auth gate', () => {
     const res = await app.inject({ method: 'GET', url: '/api/health' });
     expect(res.statusCode).toBe(200);
     expect(json(res)).toEqual({ ok: true });
+  });
+  it('session probe returns 200 + authenticated:false when signed out', async () => {
+    const res = await app.inject({ method: 'GET', url: '/api/auth/session' });
+    expect(res.statusCode).toBe(200);
+    expect(json(res)).toEqual({ authenticated: false });
+  });
+  it('session probe returns the user when signed in', async () => {
+    const res = await inj({ method: 'GET', url: '/api/auth/session' });
+    expect(res.statusCode).toBe(200);
+    expect(json(res)).toMatchObject({ authenticated: true, email: 'owner@example.com' });
   });
 });
 

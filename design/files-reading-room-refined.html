@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Tài liệu — Mục lục refined</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --paper:#f5efe4; --paper2:#faf6ee; --paper3:#fefcf7; --raise:#ffffff;
+    --ink:#211c16; --ink2:#5a5247; --ink3:#8a8071; --ink4:#ada391;
+    --line:#e8dfce; --line2:#f0e9da;
+    --seal:#bd3a21; --seal-wash:#f3e4df;
+    --gold:#a07219; --gold-wash:#efe6d0;
+    --pine:#356b4a; --pine-wash:#dde8df;
+    --stone:#8a8275;
+    --slate:#3f567c; --slate-wash:#e0e5ee;
+    --e1:0 1px 1.5px rgba(33,28,22,.04);
+    --e2:0 1px 2px rgba(33,28,22,.05), 0 6px 16px -8px rgba(33,28,22,.10);
+    --e3:0 2px 4px rgba(33,28,22,.06), 0 18px 40px -16px rgba(33,28,22,.16);
+    --serif:'Fraunces',Georgia,serif; --sans:'Hanken Grotesk',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:20px;--s6:24px;--s8:32px;--s10:40px;
+  }
+  html,body{font-family:var(--sans);color:var(--ink);background:var(--paper);
+    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;font-feature-settings:"ss01","cv01"}
+  body{background-image:
+      radial-gradient(1100px 560px at 100% -8%, rgba(189,58,33,.035), transparent 58%),
+      radial-gradient(820px 460px at -8% 112%, rgba(53,107,74,.035), transparent 56%);
+    background-attachment:fixed;padding:34px clamp(16px,4vw,60px) 70px}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.025;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+  ::selection{background:var(--seal-wash)}
+
+  .pagehdr{max-width:1040px;margin:0 auto var(--s5)}
+  .pagehdr .kick{font-size:10.5px;letter-spacing:.26em;text-transform:uppercase;color:var(--ink3);font-weight:600}
+  .pagehdr h1{font-family:var(--serif);font-weight:400;font-size:clamp(24px,3vw,34px);letter-spacing:-.022em;margin:10px 0 6px}
+  .pagehdr h1 em{font-style:italic;font-weight:400;color:var(--seal)}
+  .pagehdr p{color:var(--ink2);font-size:14px;line-height:1.6;max-width:74ch}
+
+  .stage{max-width:1040px;margin:18px auto 0;display:flex;gap:var(--s8);align-items:flex-start}
+
+  /* ============ Mục lục — refined "the index" ============ */
+  .toc{width:288px;flex-shrink:0;background:var(--paper2);border:1px solid var(--line);border-radius:14px;
+    box-shadow:var(--e2);display:flex;flex-direction:column;overflow:hidden}
+  .toc__head{display:flex;align-items:baseline;justify-content:space-between;
+    padding:var(--s5) var(--s5) var(--s3)}
+  .toc__head h3{font-family:var(--serif);font-weight:500;font-size:16px;letter-spacing:-.01em}
+  .toc__head .tot{font-family:var(--mono);font-size:10px;color:var(--ink4);font-variant-numeric:tabular-nums}
+  .toc__scroll{padding:0 var(--s4) var(--s2)}
+
+  .grp{position:relative}
+  .grp__btn{width:100%;background:none;border:none;cursor:pointer;text-align:left;
+    display:flex;align-items:center;gap:var(--s2);padding:10px var(--s2) 8px;border-radius:8px;transition:background .14s}
+  .grp__btn:hover{background:var(--paper3)}
+  .grp__chev{font-size:8px;color:var(--ink4);transition:transform .18s ease;width:9px;flex-shrink:0}
+  .grp.open .grp__chev{transform:rotate(90deg)}
+  .grp__swatch{width:7px;height:7px;border-radius:2px;flex-shrink:0;transform:rotate(45deg);box-shadow:var(--e1)}
+  .grp[data-accent="sources"] .grp__swatch{background:var(--slate)}
+  .grp[data-accent="posts"]   .grp__swatch{background:var(--seal)}
+  .grp[data-accent="images"]  .grp__swatch{background:var(--pine)}
+  .grp__name{font-family:var(--serif);text-transform:uppercase;letter-spacing:.07em;font-size:11.5px;font-weight:600;color:var(--ink);margin-left:2px}
+  .grp__count{margin-left:auto;font-family:var(--mono);font-size:10px;color:var(--ink4);font-variant-numeric:tabular-nums}
+
+  /* the margin rule: a hairline spine the children hang from */
+  .grp__kids{position:relative;margin:2px 0 var(--s3) 0;padding-left:18px}
+  .grp__kids::before{content:"";position:absolute;left:9px;top:2px;bottom:6px;width:1px;background:var(--line)}
+  .grp[data-accent="sources"] .grp__kids::before{background:linear-gradient(180deg,var(--slate),transparent 92%);opacity:.35}
+  .grp[data-accent="posts"]   .grp__kids::before{background:linear-gradient(180deg,var(--seal),transparent 92%);opacity:.3}
+  .grp[data-accent="images"]  .grp__kids::before{background:linear-gradient(180deg,var(--pine),transparent 92%);opacity:.35}
+
+  .file{width:100%;background:none;border:none;cursor:pointer;display:flex;align-items:baseline;
+    padding:6px 10px;border-radius:8px;position:relative;transition:background .14s}
+  .file:hover{background:var(--paper3)}
+  /* tiny tick connecting child to the margin rule */
+  .file::before{content:"";position:absolute;left:-9px;top:13px;width:9px;height:1px;background:var(--line)}
+  .file__name{font-family:var(--serif);font-size:13.5px;font-weight:400;color:var(--ink2);letter-spacing:-.003em;flex:0 0 auto}
+  .file__ext{font-family:var(--mono);font-size:9.5px;color:var(--ink4);margin-left:1px;flex:0 0 auto}
+  .file__leader{flex:1 1 auto;border-bottom:1px dotted var(--line);transform:translateY(-3px);margin:0 8px;min-width:10px}
+  .file__pub{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;
+    font-family:var(--mono);font-size:8px;letter-spacing:.14em;text-transform:uppercase;color:var(--pine)}
+  .file__pub .dot{width:5px;height:5px;border-radius:50%;background:var(--pine)}
+
+  /* selected: a raised plate whose keyline inherits the section accent */
+  .file.on{background:var(--raise);box-shadow:var(--e2)}
+  .file.on .file__name{color:var(--ink);font-weight:500}
+  .file.on::after{content:"";position:absolute;left:0;top:7px;bottom:7px;width:2.5px;border-radius:3px}
+  .grp[data-accent="sources"] .file.on::after{background:var(--slate)}
+  .grp[data-accent="posts"]   .file.on::after{background:var(--seal)}
+  .grp[data-accent="images"]  .file.on::after{background:var(--pine)}
+  .file.on::before{display:none}
+
+  .empty-kid{font-size:11px;font-style:italic;color:var(--ink4);padding:5px 10px}
+  .toc__colophon{margin-top:auto;padding:var(--s3) var(--s5);border-top:1px solid var(--line);
+    font-size:10.5px;font-style:italic;color:var(--ink3);display:flex;align-items:center;gap:7px}
+  .toc__colophon .pin{width:4px;height:4px;border-radius:50%;background:var(--ink4)}
+
+  /* a faint preview of the reader so the rail is judged in context */
+  .preview{flex:1;min-width:0;border:1px dashed var(--line);border-radius:14px;padding:var(--s8);
+    color:var(--ink4);font-style:italic;min-height:520px;display:flex;align-items:center;justify-content:center;background:var(--paper2)}
+
+  .notes{max-width:1040px;margin:var(--s8) auto 0;display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s5)}
+  @media(max-width:860px){.notes{grid-template-columns:1fr 1fr}.stage{flex-direction:column}.toc{width:100%}}
+  .note h4{font-family:var(--sans);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink3);margin-bottom:8px;
+    padding-top:11px;border-top:1.5px solid var(--seal);display:inline-block}
+  .note p{font-size:12.5px;color:var(--ink2);line-height:1.6}
+  .note p b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+  <div class="pagehdr">
+    <div class="kick">Commons · Tab Tài liệu — Mục lục refined</div>
+    <h1>Mục lục như một <em>trang index khắc tay</em>.</h1>
+    <p>Bỏ thanh màu dày; thay bằng một đường chỉ lề mảnh để các tệp “treo” vào. Tên tệp dùng serif tách đuôi mono, dấu chấm dẫn mảnh, nhãn pub thu thành một chấm pine. Hàng đang chọn là một thẻ giấy nâng với keyline kế thừa màu của section.</p>
+  </div>
+
+  <div class="stage">
+    <nav class="toc">
+      <div class="toc__head"><h3>Mục lục</h3><span class="tot">6 mục</span></div>
+      <div class="toc__scroll">
+        <div class="grp open" data-accent="sources">
+          <button class="grp__btn"><span class="grp__chev">▸</span><span class="grp__swatch"></span><span class="grp__name">Tư liệu nguồn</span><span class="grp__count">2</span></button>
+          <div class="grp__kids">
+            <button class="file"><span class="file__name">brief</span><span class="file__ext">.md</span><span class="file__leader"></span></button>
+            <button class="file"><span class="file__name">brand-voice</span><span class="file__ext">.md</span><span class="file__leader"></span></button>
+          </div>
+        </div>
+        <div class="grp open" data-accent="posts">
+          <button class="grp__btn"><span class="grp__chev">▸</span><span class="grp__swatch"></span><span class="grp__name">Bản thảo</span><span class="grp__count">3</span></button>
+          <div class="grp__kids">
+            <button class="file on"><span class="file__name">gioi-thieu</span><span class="file__ext">.md</span><span class="file__leader"></span><span class="file__pub"><span class="dot"></span>pub</span></button>
+            <button class="file"><span class="file__name">calendar</span><span class="file__ext">.md</span><span class="file__leader"></span></button>
+            <button class="file"><span class="file__name">webinar-q3</span><span class="file__ext">.md</span><span class="file__leader"></span></button>
+          </div>
+        </div>
+        <div class="grp open" data-accent="images">
+          <button class="grp__btn"><span class="grp__chev">▸</span><span class="grp__swatch"></span><span class="grp__name">Hình ảnh</span><span class="grp__count">1</span></button>
+          <div class="grp__kids">
+            <button class="file"><span class="file__name">ai-everyday</span><span class="file__ext">.png</span><span class="file__leader"></span></button>
+          </div>
+        </div>
+      </div>
+      <div class="toc__colophon"><span class="pin"></span>6 tài liệu · 1 đã đăng</div>
+    </nav>
+
+    <div class="preview">↞ Mục lục tinh chỉnh. Vùng đọc giữ như bản trước (leaf + drop-cap).</div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h4>Đường chỉ lề</h4><p>Một <b>hairline dọc</b> mảnh để các tệp treo vào, kèm tick nối nhỏ — thay thanh accent dày. Đường chỉ nhuốm nhẹ màu section rồi tan dần xuống dưới.</p></div>
+    <div class="note"><h4>Serif + đuôi mono</h4><p>Tên tệp dùng <b>Fraunces</b> như mục lục sách; phần đuôi <code>.md</code> tách ra mono mờ — phân cấp thị giác tinh tế, dễ quét.</p></div>
+    <div class="note"><h4>Pub thu thành chấm</h4><p>Bỏ viên tag to; còn một <b>chấm pine</b> + micro-label. Đỡ ồn, vẫn rõ trạng thái đã đăng.</p></div>
+    <div class="note"><h4>Chọn = thẻ + keyline</h4><p>Hàng chọn nổi thành <b>thẻ giấy</b> bóng mềm, keyline trái <b>kế thừa màu section</b> — chọn trong Bản thảo thì keyline vermilion.</p></div>
+  </div>
+</body>
+</html>

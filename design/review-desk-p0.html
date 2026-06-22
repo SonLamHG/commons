@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Commons · Bàn duyệt (P0 mockup)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Hanken+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --paper:#f6f1e7;--paper2:#fbf8f1;--paper3:#fffdf8;
+    --ink:#1f1b16;--inksoft:#5c5347;--inkfaint:#756b59;
+    --rule:#e2d8c6;--rule2:#ece3d4;
+    --verm:#c43d23;--verm2:#e8d6cf;
+    --forest:#2f6b46;--forest2:#d9e6dc;
+    --amber:#a9701a;--amber2:#efe2c9;
+    --slate:#6b6256;--indigo:#36507a;--indigo2:#d6dde9;
+    --serif:'Fraunces',Georgia,serif;--sans:'Hanken Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+    --shadow-sm:0 1px 0 rgba(31,27,22,.04),0 1px 2px rgba(31,27,22,.06);
+    --shadow-md:0 2px 4px rgba(31,27,22,.06),0 8px 24px rgba(31,27,22,.08);
+  }
+  html,body{font-family:var(--sans);color:var(--ink);background:var(--paper);-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{background-image:radial-gradient(1200px 600px at 100% -5%,rgba(196,61,35,.05),transparent 60%),radial-gradient(900px 500px at -10% 110%,rgba(47,107,70,.05),transparent 55%);background-attachment:fixed;padding:30px clamp(16px,4vw,56px) 70px}
+  body::before{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;opacity:.035;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E")}
+
+  .pagehdr{max-width:1320px;margin:0 auto 18px}
+  .pagehdr .kick{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--inkfaint);font-weight:600}
+  .pagehdr h1{font-family:var(--serif);font-weight:500;font-size:clamp(24px,3vw,34px);letter-spacing:-.02em;margin:7px 0 4px}
+  .pagehdr h1 em{font-style:italic;color:var(--verm)}
+  .pagehdr p{color:var(--inksoft);font-size:14px;max-width:74ch}
+
+  /* ---------- app shell ---------- */
+  .desk{max-width:1320px;margin:14px auto 0;border:1px solid var(--rule);border-radius:14px;overflow:hidden;background:var(--paper);box-shadow:var(--shadow-md);display:flex;height:720px;position:relative}
+  .desk::after{content:"";position:absolute;top:0;left:233px;width:3px;height:100%;background:var(--verm);z-index:6}
+
+  /* sidebar */
+  .side{width:234px;flex-shrink:0;background:var(--paper2);padding:20px 16px;border-right:1px solid var(--rule);display:flex;flex-direction:column}
+  .side h2{font-family:var(--serif);font-weight:600;font-size:24px;letter-spacing:-.02em;line-height:1}
+  .side .tagline{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);margin:8px 0 15px;padding-bottom:14px;border-bottom:1px solid var(--rule)}
+  .side .grp{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--inkfaint);font-weight:600;display:flex;align-items:center;gap:9px;margin-bottom:9px}
+  .side .grp::after{content:"";flex:1;height:1px;background:var(--rule)}
+  .ws{font-family:var(--serif);font-size:14px;padding:8px 9px;border-radius:6px;color:var(--inksoft);display:flex;align-items:baseline;gap:8px}
+  .ws .c{font-family:var(--mono);font-size:10px;color:var(--inkfaint)}
+  .ws.on{background:var(--paper3);color:var(--ink);font-weight:500;box-shadow:var(--shadow-sm);border:1px solid var(--rule)}
+  .side .colophon{margin-top:auto;padding-top:14px;border-top:1px solid var(--rule);font-size:11px;color:var(--inkfaint);line-height:1.5}
+  .side .colophon b{color:var(--inksoft)}
+
+  /* main = tabs + the two-pane review desk */
+  .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .tabs{display:flex;gap:24px;padding:18px 24px 0;border-bottom:1px solid var(--rule);flex-shrink:0}
+  .tabs .tab{font-size:13px;color:var(--inkfaint);padding-bottom:12px;position:relative}
+  .tabs .tab.on{color:var(--ink);font-weight:600}
+  .tabs .tab.on::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:2px;background:var(--verm)}
+
+  .twopane{flex:1;display:flex;overflow:hidden}
+
+  /* ===== QUEUE (left, persistent) ===== */
+  .queue{width:316px;flex-shrink:0;border-right:1px solid var(--rule);display:flex;flex-direction:column;background:linear-gradient(var(--paper),var(--paper))}
+  .queue-top{padding:14px 16px 12px;border-bottom:1px solid var(--rule)}
+  .queue-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:10px}
+  .queue-title h3{font-family:var(--serif);font-weight:600;font-size:17px}
+  .queue-title .left{font-family:var(--mono);font-size:10.5px;color:var(--inkfaint)}
+  /* progress: how many still need review */
+  .progress{height:5px;border-radius:3px;background:var(--rule2);overflow:hidden}
+  .progress > i{display:block;height:100%;width:60%;background:linear-gradient(90deg,var(--amber),#c89030)}
+  .queue-prog-label{font-size:10.5px;color:var(--inkfaint);margin-top:6px}
+  .queue-prog-label b{color:var(--amber)}
+
+  .qscroll{flex:1;overflow:auto;padding:6px 0 10px}
+  .qgroup{padding:14px 16px 2px}
+  .qgroup .qh{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);font-weight:700;display:flex;align-items:center;gap:8px;margin-bottom:4px}
+  .qgroup .qh .pip{width:7px;height:7px;border-radius:50%}
+  .qgroup .qh .num{font-family:var(--mono);font-weight:500;color:var(--inkfaint)}
+  .qgroup .qh::after{content:"";flex:1;height:1px;background:var(--rule)}
+
+  .qrow{display:block;width:100%;text-align:left;background:none;border:none;cursor:pointer;
+    padding:11px 16px 12px;border-left:3px solid transparent;position:relative}
+  .qrow:hover{background:var(--paper2)}
+  .qrow.on{background:var(--paper3);border-left-color:var(--verm);box-shadow:inset 0 0 0 1px var(--rule)}
+  .qrow .r1{display:flex;align-items:baseline;gap:8px}
+  .qrow .id{font-family:var(--mono);font-size:10px;color:var(--inkfaint)}
+  .qrow .ttl{font-family:var(--serif);font-size:14.5px;font-weight:500;color:var(--ink);line-height:1.25;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .qrow .r2{display:flex;align-items:center;gap:10px;margin-top:7px}
+  .qrow .delta{font-family:var(--mono);font-size:10.5px}
+  .qrow .delta .a{color:var(--forest)}.qrow .delta .d{color:var(--verm)}
+  .qrow .when{font-size:10.5px;color:var(--inkfaint);margin-left:auto}
+  .qrow .files{font-size:10.5px;color:var(--inkfaint)}
+  .qstamp{font-size:8.5px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;border:1.4px solid;padding:2px 6px;border-radius:3px;transform:rotate(-2.5deg)}
+  .qstamp.pending{color:var(--amber);border-color:var(--amber);background:var(--amber2)}
+  .qstamp.merged{color:var(--forest);border-color:var(--forest);background:var(--forest2)}
+  .qstamp.rejected{color:var(--verm);border-color:var(--verm);background:var(--verm2)}
+  .pip.pending{background:var(--amber)}.pip.resolved{background:var(--slate)}
+
+  /* ===== REVIEW (right) ===== */
+  .review{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+  .rev-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+    padding:14px 24px;border-bottom:1.5px solid var(--rule);
+    background:linear-gradient(var(--paper3),var(--paper2));box-shadow:0 6px 16px -14px rgba(31,27,22,.4)}
+  .rev-bar h3{font-family:var(--serif);font-weight:500;font-size:20px;letter-spacing:-.01em;flex:1;min-width:200px;display:flex;align-items:center;gap:12px}
+  .rev-bar .badge{font-size:9px;letter-spacing:.08em;text-transform:uppercase;font-weight:700;color:var(--amber);border:1.5px solid var(--amber);background:var(--amber2);padding:3px 8px;border-radius:4px;transform:rotate(-2deg)}
+  .rev-actions{display:flex;gap:9px;align-items:center}
+  .btn{font-family:var(--sans);font-size:13px;font-weight:600;padding:9px 15px;border-radius:8px;border:1px solid var(--rule);background:var(--paper3);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:8px}
+  .btn .k{font-family:var(--mono);font-size:10px;color:var(--inkfaint);border:1px solid var(--rule);border-radius:3px;padding:0 4px}
+  .btn.approve{background:var(--forest);color:#fff;border-color:var(--forest);box-shadow:0 0 0 1px var(--forest),0 6px 14px -6px rgba(47,107,70,.6)}
+  .btn.approve .k{color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.4)}
+  .btn.reject{color:var(--verm);border-color:var(--verm)}
+  .rev-meta{flex-basis:100%;font-family:var(--mono);font-size:11px;color:var(--inkfaint)}
+
+  .rev-body{flex:1;display:flex;overflow:hidden}
+  /* file ToC */
+  .toc{width:184px;flex-shrink:0;border-right:1px solid var(--rule);padding:16px 10px;overflow:auto;background:var(--paper2)}
+  .toc .h{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--inkfaint);font-weight:700;margin:0 6px 9px}
+  .toc a{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:6px;font-size:12px;color:var(--inksoft);text-decoration:none;margin-bottom:1px}
+  .toc a.on{background:var(--paper3);color:var(--ink);font-weight:500;box-shadow:var(--shadow-sm)}
+  .toc a .nm{font-family:var(--serif);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toc a .dd{font-family:var(--mono);font-size:9.5px}
+  .toc a .dd .a{color:var(--forest)}.toc a .dd .d{color:var(--verm)}
+
+  .rev-scroll{flex:1;overflow:auto;padding:20px 30px 40px}
+
+  /* agent context card */
+  .ctx{border:1px solid var(--rule);border-left:3px solid var(--indigo);border-radius:9px;background:var(--paper2);padding:13px 16px;margin-bottom:24px}
+  .ctx .h{font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--indigo);font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:7px}
+  .ctx .h .seal{width:7px;height:7px;border-radius:50%;background:var(--indigo)}
+  .ctx .prompt{font-family:var(--serif);font-style:italic;font-size:14.5px;color:var(--ink);line-height:1.55}
+  .ctx .sum{font-size:12.5px;color:var(--inksoft);margin-top:9px;line-height:1.5}
+
+  .modeswitch{display:inline-flex;border:1px solid var(--rule);border-radius:8px;overflow:hidden;background:var(--paper2);margin-bottom:20px}
+  .modeswitch .m{font-size:12px;font-weight:600;padding:7px 15px;color:var(--inksoft);cursor:pointer;border:none;background:none}
+  .modeswitch .m + .m{border-left:1px solid var(--rule)}
+  .modeswitch .m.on{background:var(--ink);color:var(--paper)}
+
+  .fileplate{margin-bottom:30px}
+  .fileplate .pm{display:flex;align-items:baseline;gap:11px;padding-bottom:11px;margin-bottom:14px;border-bottom:1px solid var(--rule2)}
+  .fileplate .pm .num{font-family:var(--mono);font-size:11px;color:var(--inkfaint)}
+  .fileplate .pm .badge2{font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;padding:3px 7px;border-radius:4px}
+  .badge2.new{color:var(--indigo);background:var(--indigo2)}
+  .badge2.mod{color:var(--amber);background:var(--amber2)}
+  .fileplate .pm .pth{font-family:var(--mono);font-size:11.5px;color:var(--inkfaint)}
+  .prose{font-family:var(--serif);font-size:16.5px;line-height:1.85;color:var(--ink);max-width:64ch}
+  .prose p{margin-bottom:15px}
+  .ins{background:var(--forest2);color:#1d4a2e;border-radius:3px;padding:.5px 2px;box-shadow:inset 0 -2px 0 rgba(47,107,70,.35)}
+  .del{background:var(--verm2);color:#7a2414;border-radius:3px;padding:.5px 2px;text-decoration:line-through;text-decoration-color:rgba(196,61,35,.6)}
+  .collapsed{font-family:var(--sans);font-size:11.5px;color:var(--inkfaint);background:var(--paper2);border:1px dashed var(--rule);border-radius:7px;padding:8px 12px;margin:6px 0 15px;cursor:pointer;display:flex;align-items:center;gap:8px}
+
+  /* footer: sequential review + undo */
+  .rev-foot{flex-shrink:0;display:flex;align-items:center;gap:14px;padding:11px 24px;border-top:1px solid var(--rule);background:var(--paper2);font-size:12px;color:var(--inkfaint)}
+  .rev-foot .nav{display:flex;gap:6px}
+  .rev-foot .nav .btn{padding:6px 10px;font-size:12px}
+  .rev-foot .seal{width:7px;height:7px;border-radius:50%;background:var(--amber)}
+
+  /* undo toast */
+  .toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);
+    background:var(--ink);color:var(--paper3);border-radius:10px;padding:11px 16px;
+    display:flex;align-items:center;gap:14px;font-size:13px;box-shadow:var(--shadow-md);z-index:8}
+  .toast b{color:#9fd9b4}
+  .toast button{background:none;border:1px solid rgba(255,255,255,.3);color:var(--paper3);font-family:var(--sans);font-weight:600;font-size:12px;padding:5px 11px;border-radius:6px;cursor:pointer}
+
+  /* annotations */
+  .notes{max-width:1320px;margin:22px auto 0;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media(max-width:900px){.notes{grid-template-columns:1fr}}
+  .note{border-top:2px solid var(--verm);padding-top:12px}
+  .note h4{font-family:var(--sans);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--inkfaint);margin-bottom:7px}
+  .note p{font-size:13px;color:var(--inksoft);line-height:1.55}
+  .note p b{color:var(--ink)}
+</style>
+</head>
+<body>
+  <div class="pagehdr">
+    <div class="kick">Commons · Redesign P0 — Bàn duyệt hai khung</div>
+    <h1>Tab Đề xuất, làm lại như một <em>hàng đợi review</em>.</h1>
+    <p>Hàng đợi luôn hiện bên trái (phân nhóm theo việc cần làm + tiến độ); review ở bên phải — duyệt liên tục không nhảy trang. Keyboard-first (j/k/e/x) + Undo. Có mục lục tệp và khối ngữ cảnh agent. Giữ trọn thẩm mỹ letterpress.</p>
+  </div>
+
+  <div class="desk">
+    <!-- sidebar -->
+    <aside class="side">
+      <h2>Commons</h2>
+      <div class="tagline">Bàn duyệt công việc tri thức</div>
+      <div class="grp">Không gian làm việc</div>
+      <div class="ws on">AIOS_Campaign <span class="c">3</span></div>
+      <div class="ws">brand-guidelines <span class="c">1</span></div>
+      <div class="colophon">Agent đề xuất · con người duyệt.<br>Nhánh <b>main</b> là bản đã được phê duyệt.</div>
+    </aside>
+
+    <div class="main">
+      <div class="tabs"><span class="tab">Trợ lý</span><span class="tab on">Đề xuất</span><span class="tab">Tài liệu</span></div>
+
+      <div class="twopane">
+        <!-- ===== QUEUE ===== -->
+        <div class="queue">
+          <div class="queue-top">
+            <div class="queue-title">
+              <h3>Hàng đợi duyệt</h3>
+              <span class="left">3 / 5</span>
+            </div>
+            <div class="progress"><i></i></div>
+            <div class="queue-prog-label">Còn <b>2 đề xuất</b> chờ bạn duyệt</div>
+          </div>
+          <div class="qscroll">
+            <div class="qgroup">
+              <div class="qh"><span class="pip pending"></span>Cần bạn duyệt <span class="num">2</span></div>
+              <button class="qrow on">
+                <div class="r1"><span class="id">7a3f</span><span class="ttl">Blog post: Giới thiệu workspace AIOS Campaign</span></div>
+                <div class="r2"><span class="qstamp pending">Chờ duyệt</span><span class="files">3 tệp</span><span class="delta"><span class="a">+184</span> <span class="d">−29</span></span><span class="when">2 giờ</span></div>
+              </button>
+              <button class="qrow">
+                <div class="r1"><span class="id">9b2e</span><span class="ttl">Cập nhật từ khoá SEO cho 5 bài blog</span></div>
+                <div class="r2"><span class="qstamp pending">Chờ duyệt</span><span class="files">5 tệp</span><span class="delta"><span class="a">+47</span> <span class="d">−31</span></span><span class="when">hôm qua</span></div>
+              </button>
+            </div>
+            <div class="qgroup">
+              <div class="qh"><span class="pip resolved"></span>Đã xử lý <span class="num">3</span></div>
+              <button class="qrow">
+                <div class="r1"><span class="id">2c1d</span><span class="ttl">Sửa giọng văn bản tin chào mừng</span></div>
+                <div class="r2"><span class="qstamp merged">Đã merge</span><span class="files">1 tệp</span><span class="when">3 ngày</span></div>
+              </button>
+              <button class="qrow">
+                <div class="r1"><span class="id">5f80</span><span class="ttl">Đề xuất chủ đề webinar Q3</span></div>
+                <div class="r2"><span class="qstamp merged">Đã merge</span><span class="files">2 tệp</span><span class="when">3 ngày</span></div>
+              </button>
+              <button class="qrow">
+                <div class="r1"><span class="id">1a44</span><span class="ttl">Viết lại trang giới thiệu</span></div>
+                <div class="r2"><span class="qstamp rejected">Từ chối</span><span class="files">1 tệp</span><span class="when">tuần trước</span></div>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== REVIEW ===== -->
+        <div class="review">
+          <div class="rev-bar">
+            <h3>Blog post: Giới thiệu workspace AIOS Campaign <span class="badge">Chờ duyệt</span></h3>
+            <div class="rev-actions">
+              <button class="btn approve">Duyệt &amp; merge <span class="k">E</span></button>
+              <button class="btn reject">Từ chối <span class="k">X</span></button>
+            </div>
+            <div class="rev-meta">proposal/7a3f → main · 3 tệp thay đổi · 1 mới · 1 sửa · 1 gỡ bỏ</div>
+          </div>
+
+          <div class="rev-body">
+            <nav class="toc">
+              <div class="h">Tệp · 3</div>
+              <a class="on"><span class="nm">gioi-thieu.md</span><span class="dd"><span class="a">+96</span></span></a>
+              <a><span class="nm">calendar.md</span><span class="dd"><span class="a">+88</span> <span class="d">−27</span></span></a>
+              <a><span class="nm">ai-everyday.png</span><span class="dd"><span class="d">gỡ</span></span></a>
+            </nav>
+
+            <div class="rev-scroll">
+              <div class="ctx">
+                <div class="h"><span class="seal"></span>Trợ lý tạo đề xuất này từ yêu cầu</div>
+                <div class="prompt">“Viết một bài blog giới thiệu workspace AIOS Campaign, nhấn mạnh quy trình soạn–duyệt–xuất bản có AI hỗ trợ.”</div>
+                <div class="sum">→ Tạo bài mới <b>gioi-thieu.md</b>, cập nhật lịch nội dung, và gỡ bản nháp cũ <b>ai-everyday</b> không còn dùng.</div>
+              </div>
+
+              <div class="modeswitch">
+                <button class="m on">Văn xuôi</button>
+                <button class="m">Bản đọc</button>
+                <button class="m">Thay đổi</button>
+              </div>
+
+              <div class="fileplate">
+                <div class="pm"><span class="num">01</span><span class="badge2 new">Mới</span><span class="pth">drafts/gioi-thieu.md</span></div>
+                <div class="prose">
+                  <p><span class="ins">Chào mừng đến với AIOS Campaign — không gian nơi đội ngũ và AI cùng soạn thảo, duyệt và xuất bản nội dung. Mỗi thay đổi của trợ lý đều chờ con người phê duyệt trước khi chạm tới bản chính thức.</span></p>
+                </div>
+              </div>
+
+              <div class="fileplate">
+                <div class="pm"><span class="num">02</span><span class="badge2 mod">Sửa</span><span class="pth">calendar.md</span></div>
+                <div class="prose">
+                  <p>Lịch tháng 7 tập trung vào chuỗi bài hướng dẫn và <ins class="ins">ba số bản tin hằng tuần phát hành thứ Năm</ins><del class="del"> một vài bản tin chưa định ngày</del>.</p>
+                  <div class="collapsed">⋯ 14 dòng không đổi — bấm để mở rộng</div>
+                  <p>Cuối tháng <del class="del">để trống chờ kế hoạch</del> <ins class="ins">đã xếp đủ: 22/07 bài tổng hợp, 29/07 bản tin khép tháng</ins>.</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="rev-foot">
+              <span class="seal"></span> Chỉ bạn mới merge được — agent không thể chạm <b style="color:var(--inksoft)">main</b>.
+              <div class="nav" style="margin-left:auto">
+                <button class="btn">‹ Trước <span class="k" style="margin-left:4px">K</span></button>
+                <button class="btn">Kế tiếp <span class="k" style="margin-left:4px">J</span> ›</button>
+              </div>
+            </div>
+
+            <!-- undo toast (shown right after an approve) -->
+            <div class="toast">Đã merge <b>“Sửa giọng bản tin”</b> vào main. <button>Hoàn tác (5)</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <div class="note"><h4>Sửa lỗi cốt lõi</h4><p><b>Không còn nhảy trang.</b> Hàng đợi luôn bên trái; chọn đề xuất khác là khung phải đổi tức thì — duyệt 10 cái không mất chỗ.</p></div>
+    <div class="note"><h4>Cảm giác hàng đợi</h4><p>Nhóm <b>“Cần bạn duyệt”</b> lên đầu + thanh tiến độ “còn N chờ duyệt” → rõ việc, có đích để “dọn sạch”.</p></div>
+    <div class="note"><h4>Keyboard-first + Undo</h4><p><b>J/K</b> qua lại, <b>E</b> duyệt, <b>X</b> từ chối; sau khi duyệt tự nhảy cái kế. Toast <b>Hoàn tác 5s</b> làm lưới an toàn cho merge.</p></div>
+    <div class="note"><h4>Mục lục tệp</h4><p>ToC bên trái khung review để nhảy nhanh giữa tệp khi đề xuất nhiều tệp — hết cuộn mỏi.</p></div>
+    <div class="note"><h4>Ngữ cảnh agent</h4><p>Khối hiển thị <b>prompt sinh ra đề xuất</b> + tóm tắt 1 dòng → người duyệt có cơ sở quyết định.</p></div>
+    <div class="note"><h4>Diff gọn hơn</h4><p>Phần không đổi <b>thu gọn</b> (mở rộng khi cần) để mắt chỉ tập trung vào chỗ thật sự thay đổi.</p></div>
+  </div>
+</body>
+</html>

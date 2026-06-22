@@ -10,6 +10,10 @@ export interface AuthDeps {
   secret: string;
   appUrl: string;
   mailer: Mailer;
+  /** When true, any valid email may sign in — the invite allowlist is bypassed. */
+  openSignup?: boolean;
+  /** Called once when a brand-new tenant is created, to seed its demo content. */
+  seedTenant?: (tenantId: string) => Promise<void>;
 }
 
 const COOKIE = 'commons_session';
@@ -30,11 +34,13 @@ export function makeRequireAuth(deps: AuthDeps) {
 /** Register the magic-link auth routes on `app`. */
 export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const secure = deps.appUrl.startsWith('https');
+  // Allow sign-in when open signup is on, otherwise require an invite.
+  const allowed = (email: string) => deps.openSignup === true || deps.db.isInvited(email);
 
   app.post('/api/auth/request', async (req, reply) => {
     const { email } = (req.body ?? {}) as { email?: string };
     if (!email || !email.includes('@')) return reply.code(400).send({ error: 'valid email required' });
-    if (deps.db.isInvited(email)) {
+    if (allowed(email)) {
       const token = createMagicToken(email, deps.secret);
       const link = `${deps.appUrl}/api/auth/callback?token=${encodeURIComponent(token)}`;
       await deps.mailer.send(
@@ -49,13 +55,22 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   app.get('/api/auth/callback', async (req, reply) => {
     const { token } = req.query as { token?: string };
     const email = token ? readMagicToken(token, deps.secret) : null;
-    if (!email || !deps.db.isInvited(email)) return reply.code(401).send({ error: 'invalid or expired link' });
+    if (!email || !allowed(email)) return reply.code(401).send({ error: 'invalid or expired link' });
 
     let user = deps.db.getUserByEmail(email);
     if (!user) {
       const tenantId = generateId('t');
       deps.db.createTenant(tenantId);
       user = deps.db.createUser(email, tenantId);
+      // Seed demo content so the first screen is populated. A seed failure must
+      // never block sign-in — log and continue with an empty workspace.
+      if (deps.seedTenant) {
+        try {
+          await deps.seedTenant(tenantId);
+        } catch (e) {
+          req.log.error({ err: e, tenantId }, 'failed to seed onboarding workspace');
+        }
+      }
     }
     deps.db.markInviteAccepted(email);
 
@@ -71,6 +86,17 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       httpOnly: true, secure, sameSite: 'Lax', path: '/', maxAge: 0,
     }));
     return reply.send({ ok: true });
+  });
+
+  // Unauthenticated-friendly probe: always 200 so the SPA's initial "am I
+  // logged in?" check never surfaces a 401 in the browser console (the browser
+  // logs every 4xx fetch regardless of how JS handles it).
+  app.get('/api/auth/session', async (req) => {
+    const raw = parseCookies(req.headers.cookie)[COOKIE];
+    const userId = raw ? readSession(raw, deps.secret) : null;
+    const user = userId ? deps.db.getUserById(userId) : undefined;
+    if (!user) return { authenticated: false as const };
+    return { authenticated: true as const, userId: user.id, tenantId: user.tenant_id, email: user.email };
   });
 
   const requireAuth = makeRequireAuth(deps);

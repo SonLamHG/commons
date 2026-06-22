@@ -1,0 +1,5 @@
+# COMMONS_DOMAIN drives automatic TLS. Use a real domain in production
+# (Let's Encrypt); use `localhost` for a local smoke test (internal cert).
+{$COMMONS_DOMAIN} {
+	reverse_proxy app:8787
+}

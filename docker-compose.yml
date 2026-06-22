@@ -1,0 +1,45 @@
+services:
+  app:
+    build: .
+    env_file: .env
+    environment:
+      COMMONS_ROOT: /data
+      HOST: 0.0.0.0
+    volumes:
+      - commons-data:/data
+    restart: unless-stopped
+    # ADR-1: SINGLE WRITER. The serializer is in-process and git locks are on
+    # one volume. Do NOT add `deploy.replicas` or scale this service > 1.
+    # No `ports:` — only Caddy is reachable from the host.
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      COMMONS_DOMAIN: ${COMMONS_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  backup:
+    build: .
+    env_file: .env
+    environment:
+      COMMONS_ROOT: /data
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - 'while true; do /app/scripts/backup.sh || echo "backup run failed" >&2; sleep "${BACKUP_INTERVAL:-86400}"; done'
+    volumes:
+      - commons-data:/data
+    restart: unless-stopped
+
+volumes:
+  commons-data:
+  caddy_data:
+  caddy_config:

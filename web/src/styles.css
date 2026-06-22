@@ -1090,3 +1090,303 @@ body::before {
   margin-top: 12px; font-size: 11.5px; color: var(--ink-soft);
   display: flex; align-items: center; gap: 4px;
 }
+
+/* ============================================================
+   Proposals — high-density ledger (redesign)
+   A bound register of submissions: filter tabs, numbered rows,
+   rubber-stamp status, keyboard review. Keeps the letterpress
+   look while showing many proposals per screen.
+   ============================================================ */
+.ledger-wrap { height: calc(100% - 50px); display: flex; flex-direction: column; padding: 0; overflow: hidden; }
+
+/* toolbar: filter register + keyboard legend */
+.prop-toolbar {
+  display: flex; align-items: center; gap: 16px;
+  padding: 16px 26px 12px; flex-wrap: wrap;
+}
+.prop-filters {
+  display: flex; gap: 4px;
+  background: var(--paper-2); border: 1px solid var(--rule);
+  border-radius: 9px; padding: 3px;
+}
+.prop-filter {
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft);
+  background: none; border: none; cursor: pointer;
+  padding: 6px 13px; border-radius: 6px;
+  display: inline-flex; align-items: baseline; gap: 6px;
+}
+.prop-filter:hover { color: var(--ink); }
+.prop-filter.on {
+  background: #fffdf8; color: var(--ink); font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+.prop-filter .n {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-faint);
+}
+.prop-filter.on .n { color: var(--vermilion); }
+.prop-keyhint {
+  margin-left: auto; display: flex; gap: 14px;
+  font-size: 11px; color: var(--ink-faint);
+}
+.kbd {
+  font-family: var(--mono); font-size: 10px; color: var(--ink-soft);
+  background: #fffdf8; border: 1px solid var(--rule);
+  border-bottom-width: 2px; border-radius: 4px;
+  padding: 1px 6px;
+}
+
+/* the register itself */
+.ledger { flex: 1; overflow: auto; padding: 0 26px 18px; }
+.ledger-head, .ledger-row {
+  display: grid;
+  grid-template-columns: 22px 56px 1fr 112px 96px;
+  gap: 14px; align-items: center;
+}
+.ledger-head {
+  position: sticky; top: 0; z-index: 2;
+  padding: 9px 12px; background: var(--paper);
+  font-family: var(--sans); font-size: 9.5px; font-weight: 600;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--ink-faint);
+  border-bottom: 1px solid var(--rule);
+}
+.ledger-row {
+  width: 100%; text-align: left; cursor: pointer;
+  background: none; border: none;
+  padding: 13px 12px; position: relative;
+  border-bottom: 1px solid var(--rule-soft);
+}
+.ledger-row::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; background: var(--vermilion);
+  transform: scaleY(0); transform-origin: center;
+  transition: transform .12s ease;
+}
+.ledger-row:hover, .ledger-row.focus { background: var(--paper-2); }
+.ledger-row.focus { box-shadow: inset 0 0 0 1px var(--rule); border-radius: 6px; }
+.ledger-row.focus::before { transform: scaleY(1); }
+
+.l-dot { width: 8px; height: 8px; border-radius: 50%; justify-self: center; }
+.l-id { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); }
+.l-title {
+  font-family: var(--serif); font-size: 15.5px; font-weight: 500; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.l-by { font-family: var(--sans); font-size: 11px; font-weight: 400; color: var(--ink-faint); margin-left: 9px; }
+.l-when { font-family: var(--sans); font-size: 11.5px; color: var(--ink-faint); text-align: right; }
+
+/* rubber-stamp status, per tone */
+.l-stamp {
+  justify-self: start; white-space: nowrap;
+  font-family: var(--sans); font-size: 9.5px; font-weight: 700;
+  letter-spacing: .08em; text-transform: uppercase;
+  border: 1.5px solid; padding: 3px 7px; border-radius: 4px;
+  transform: rotate(-2.5deg);
+}
+.l-dot.pending  { background: var(--amber); }
+.l-dot.merged   { background: var(--forest); }
+.l-dot.rejected { background: var(--vermilion); }
+.l-dot.opening  { background: var(--indigo); }
+.l-stamp.pending  { color: var(--amber);     border-color: var(--amber);     background: var(--amber-2); }
+.l-stamp.merged   { color: var(--forest);    border-color: var(--forest);    background: var(--forest-2); }
+.l-stamp.rejected { color: var(--vermilion); border-color: var(--vermilion); background: var(--vermilion-2); }
+.l-stamp.opening  { color: var(--indigo);    border-color: var(--indigo);    background: var(--indigo-2); }
+
+/* full-width detail (replaces the master/detail split when a row opens) */
+.prop-detailfull { height: calc(100% - 50px); }
+.prop-back {
+  font-family: var(--sans); font-size: 12.5px; color: var(--ink-faint);
+  background: none; border: none; cursor: pointer;
+  padding: 0; margin-bottom: 14px;
+}
+.prop-back:hover { color: var(--vermilion); }
+
+@media (prefers-reduced-motion: reduce) {
+  .ledger-row::before { transition: none; }
+}
+@media (max-width: 720px) {
+  .ledger-wrap, .prop-detailfull { height: auto; overflow: visible; }
+  .prop-toolbar { padding: 14px 16px 10px; }
+  .prop-keyhint { display: none; }
+  .ledger { padding: 0 12px 16px; }
+  .ledger-head { display: none; }
+  .ledger-row { grid-template-columns: 16px 1fr auto; gap: 10px; padding: 12px 8px; }
+  .ledger-row .l-id, .ledger-row .l-when { display: none; }
+}
+
+/* ---------- Prose diff: a manuscript with edits marked inline ---------- */
+.prose-diff {
+  font-family: var(--serif); font-size: 16.5px; line-height: 1.85;
+  color: var(--ink); white-space: pre-wrap; word-break: break-word;
+  max-width: 66ch;
+}
+.prose-diff .ins {
+  background: var(--forest-2); color: #1d4a2e;
+  text-decoration: none; border-radius: 3px; padding: .5px 2px;
+  box-shadow: inset 0 -2px 0 rgba(47,107,70,.35);
+}
+.prose-diff .del {
+  background: var(--vermilion-2); color: #7a2414;
+  text-decoration: line-through; text-decoration-color: rgba(196,61,35,.6);
+  border-radius: 3px; padding: .5px 2px;
+}
+
+/* Added file in the prose view: read as a finished document, marked new with a
+   forest spine instead of bathing every word in green. */
+.doc--new {
+  border-left: 3px solid var(--forest);
+  padding-left: 20px;
+  background: linear-gradient(90deg, rgba(47,107,70,.05), transparent 40%);
+}
+pre.doc--new { padding-left: 20px; }
+
+/* ---------- Review detail polish: change summary + numbered file plates ---------- */
+.reviewbar-meta {
+  flex-basis: 100%; margin: 2px 0 0;
+  font-family: var(--mono); font-size: 11.5px; letter-spacing: .02em;
+  color: var(--ink-faint);
+}
+
+/* Number each changed file like a ledger entry, separated by hairlines so a
+   multi-file proposal reads as distinct plates rather than one long scroll. */
+.detail { counter-reset: filenum; }
+.docwrap { counter-increment: filenum; }
+.docwrap + .docwrap {
+  margin-top: 30px; padding-top: 26px;
+  border-top: 1px solid var(--rule);
+}
+.docmeta {
+  align-items: baseline; gap: 12px; margin-bottom: 16px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--rule-soft);
+}
+.docmeta::before {
+  content: counter(filenum, decimal-leading-zero);
+  font-family: var(--mono); font-size: 12px; font-weight: 500;
+  color: var(--ink-faint);
+}
+
+/* ============================================================
+   Review desk (P0) — persistent two-pane: queue + review.
+   Queue groups by action (needs you / done) with a progress
+   meter; the review pane carries a file ToC, the diff, and a
+   prev/next footer. Letterpress identity throughout.
+   ============================================================ */
+.reviewdesk { display: flex; height: calc(100% - 50px); }
+
+/* ---------- queue (left, persistent) ---------- */
+.queue {
+  width: 320px; flex-shrink: 0; display: flex; flex-direction: column;
+  border-right: 1px solid var(--rule); background: var(--paper);
+}
+.queue-top { padding: 18px 18px 16px; }
+.queue-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 14px; }
+.queue-head h2 { font-family: var(--serif); font-weight: 600; font-size: 18px; letter-spacing: -.01em; margin: 0; }
+.queue-count { font-family: var(--mono); font-size: 11px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.queue-count b { color: var(--ink); }
+.meter { height: 3px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.meter > i { display: block; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #c0851f, var(--amber)); transition: width .4s cubic-bezier(.2,.7,.2,1); }
+.queue-sub { font-size: 11.5px; color: var(--ink-faint); margin: 9px 0 0; }
+.queue-sub b { color: var(--amber); font-weight: 600; }
+
+.queue-scroll { flex: 1; overflow: auto; padding-bottom: 16px; }
+.qgroup { padding: 16px 14px 0; }
+.qgroup-head {
+  font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600;
+  display: flex; align-items: center; gap: 9px; margin: 0 4px 6px;
+}
+.qgroup-head .n { font-family: var(--mono); font-weight: 500; color: var(--ink-faint); margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.qrow {
+  display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer;
+  padding: 11px 12px; border-radius: 11px; position: relative; margin-top: 2px;
+  transition: background .16s;
+}
+.qrow:hover { background: var(--paper-2); }
+.qrow.on { background: #fffdf8; box-shadow: var(--shadow-sm); border: 1px solid var(--rule); }
+.qrow.on::before { content: ""; position: absolute; left: 0; top: 13px; bottom: 13px; width: 2.5px; border-radius: 3px; background: var(--vermilion); }
+.qrow-top { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+.qmark { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.qmark .qdot { width: 6px; height: 6px; border-radius: 50%; }
+.qmark.gold   { color: var(--amber);    } .qmark.gold   .qdot { background: var(--amber); }
+.qmark.pine   { color: var(--forest);   } .qmark.pine   .qdot { background: var(--forest); }
+.qmark.slatec { color: var(--indigo);   } .qmark.slatec .qdot { background: var(--indigo); }
+.qmark.stone  { color: var(--slate);    } .qmark.stone  .qdot { background: var(--slate); }
+.qid { font-family: var(--mono); font-size: 9.5px; color: var(--ink-faint); margin-left: auto; font-variant-numeric: tabular-nums; }
+.qttl {
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  font-family: var(--serif); font-size: 14.5px; font-weight: 400; color: var(--ink); line-height: 1.3; letter-spacing: -.005em;
+}
+.qmeta { display: flex; align-items: center; margin-top: 8px; }
+.qwhen { font-size: 10.5px; color: var(--ink-faint); }
+
+/* ---------- review pane (right) ---------- */
+.reviewhost { flex: 1; min-width: 0; display: flex; }
+.reviewhost .empty--center { margin: auto; }
+.revpane { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+
+.revbar {
+  display: flex; align-items: flex-start; gap: 16px 24px; flex-wrap: wrap;
+  padding: 18px 28px 16px; border-bottom: 1px solid var(--rule);
+  background: linear-gradient(180deg, #fffdf8, var(--paper-2));
+}
+.revbar-title { flex: 1; min-width: 220px; }
+.revbar-title h3 {
+  font-family: var(--serif); font-weight: 500; font-size: 21px; letter-spacing: -.015em; line-height: 1.25;
+  margin: 0; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+}
+.revbar-title h3 .badge { transform: none; }
+.revbar-meta { font-family: var(--mono); font-size: 10.5px; color: var(--ink-faint); margin: 7px 0 0; font-variant-numeric: tabular-nums; letter-spacing: .01em; }
+.revbar-actions { display: flex; gap: 10px; align-items: center; }
+.revbar-actions .btn.approve { box-shadow: 0 0 0 1px var(--forest), 0 6px 14px -8px rgba(47,107,70,.5); }
+
+.revbody { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+
+/* file ToC */
+.revtoc { width: 190px; flex-shrink: 0; border-right: 1px solid var(--rule); padding: 18px 10px; overflow: auto; background: var(--paper-2); }
+.revtoc-h { font-size: 9px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-faint); font-weight: 600; margin: 0 8px 10px; }
+.revtoc-item {
+  display: flex; align-items: baseline; gap: 9px; width: 100%; text-align: left;
+  background: none; border: none; cursor: pointer; padding: 8px 9px; border-radius: 8px;
+  color: var(--ink-soft); transition: background .14s, color .14s;
+}
+.revtoc-item:hover { background: #fffdf8; color: var(--ink); }
+.revtoc-item .ix { font-family: var(--mono); font-size: 9px; color: var(--ink-faint); }
+.revtoc-item .nm { font-family: var(--serif); font-size: 12.5px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -.005em; }
+.revtoc-item .dd { font-family: var(--mono); font-size: 12px; }
+.revtoc-item .dd.added { color: var(--forest); } .revtoc-item .dd.deleted { color: var(--vermilion); } .revtoc-item .dd.modified { color: var(--amber); }
+
+.revscroll { flex: 1; min-width: 0; overflow: auto; padding: 24px 40px 40px; }
+.revscroll > * { max-width: 720px; }
+.revscroll .viewtoggle { margin-top: 0; }
+
+/* footer: sequential nav */
+.revfoot {
+  flex-shrink: 0; display: flex; align-items: center; gap: 16px;
+  padding: 11px 24px; border-top: 1px solid var(--rule); background: var(--paper-2);
+  font-size: 11.5px; color: var(--ink-faint);
+}
+.revfoot-note { display: flex; align-items: center; gap: 8px; }
+.revfoot-note .seal { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+.revfoot-note b { color: var(--ink-soft); font-weight: 500; }
+.revfoot-nav { display: flex; gap: 7px; margin-left: auto; }
+.revfoot-nav .btn { padding: 7px 12px; font-size: 12px; }
+.btn.ghost { background: transparent; box-shadow: none; color: var(--ink-soft); border-color: var(--rule); }
+.btn.ghost:hover:not(:disabled) { background: #fffdf8; }
+.btn.ghost:disabled { opacity: .4; cursor: default; }
+
+@media (max-width: 860px) {
+  .reviewdesk { flex-direction: column; height: auto; }
+  .queue { width: 100%; border-right: none; border-bottom: 1px solid var(--rule); }
+  .queue-scroll { max-height: 280px; }
+  .revbody { flex-direction: column; }
+  .revtoc { width: 100%; border-right: none; border-bottom: 1px solid var(--rule); display: flex; flex-wrap: wrap; gap: 4px; }
+  .revscroll { padding: 20px 18px 30px; }
+}
+
+/* keyboard hint chip inside review buttons */
+.kbd-chip {
+  font-family: var(--mono); font-size: 9.5px; line-height: 1;
+  padding: 2px 5px; border-radius: 4px; margin-left: 2px;
+  border: 1px solid var(--rule); background: var(--paper-2); color: var(--ink-faint);
+}
+.btn.approve .kbd-chip { border-color: rgba(255,255,255,.4); background: rgba(255,255,255,.14); color: rgba(255,255,255,.85); }
+.btn.reject .kbd-chip { border-color: var(--vermilion-2); background: transparent; color: var(--vermilion); }

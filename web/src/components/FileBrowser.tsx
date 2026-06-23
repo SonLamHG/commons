@@ -126,38 +126,17 @@ export function FileBrowser({ ws }: { ws: string }) {
 
   return (
     <div className="filespane">
-      <div className="docs-toolbar">
-        <div className="docs-toolbar__title">
-          Tư liệu &amp; Bản thảo
-          <small>brief · brand-voice · ghi chú · bản thảo (.md, .txt, .pdf, .docx)</small>
-        </div>
-        <div className="docs-toolbar__actions">
-          <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
-          <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()}>
-            {uploading ? 'Đang tải…' : '↑ Tải lên'}
-          </button>
-          <div className="webhook-wrap">
-            <button className="btn ghost" aria-expanded={webhookOpen} aria-haspopup="dialog"
-              onClick={() => setWebhookOpen((o) => !o)}>Đăng bài ▾</button>
-            {webhookOpen && (
-              <div className="webhook-popover" role="dialog" aria-label="Cấu hình đăng bài">
-                <div className="webhook-popover__head">Cấu hình đăng bài</div>
-                <label htmlFor="webhook-input">Webhook đăng bài</label>
-                <input id="webhook-input" className="newinput"
-                  placeholder="https://hook.make.com/... hoặc URL webhook Discord"
-                  value={webhook} onChange={(e) => setWebhook(e.target.value)} />
-                <div className="webhook-popover__row">
-                  <button className="btn save" onClick={() => { void saveWebhook(); setWebhookOpen(false); }}>Lưu</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
       {uploadMsg && <p className={`notice notice--${uploadMsg.kind} notice--bar`} role="status">{uploadMsg.text}</p>}
       <div className="proposals">
         <div className="list">
-          <h2>Mục lục</h2>
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ margin: '0 0 4px 0' }}>Tư liệu &amp; Bản thảo</h2>
+            <p style={{ margin: '0 0 16px 0', fontSize: 11, color: 'var(--ink-faint)' }}>brief · brand-voice · ghi chú · bản thảo</p>
+            <input ref={fileInput} type="file" accept=".md,.markdown,.txt,.pdf,.docx" style={{ display: 'none' }} onChange={onUpload} />
+            <button className="btn save" disabled={uploading} onClick={() => fileInput.current?.click()} style={{ width: '100%', justifyContent: 'center' }}>
+              {uploading ? 'Đang tải…' : '↑ Tải lên tài liệu'}
+            </button>
+          </div>
           {error && <p className="notice notice--error" role="alert">{error}</p>}
           {files === null && (
             <div className="sk-toc" aria-hidden>
@@ -201,9 +180,25 @@ export function FileBrowser({ ws }: { ws: string }) {
                     {pub && <span className="doc-folio__meta">Đăng lần cuối {new Date(pub.publishedAt).toLocaleString()}</span>}
                   </div>
                   <div className="doc-folio__actions">
+                    <div className="webhook-wrap">
+                      <button className="btn ghost" aria-expanded={webhookOpen} aria-haspopup="dialog"
+                        onClick={() => setWebhookOpen((o) => !o)}>Cấu hình đăng bài ▾</button>
+                      {webhookOpen && (
+                        <div className="webhook-popover" role="dialog" aria-label="Cấu hình đăng bài">
+                          <div className="webhook-popover__head">Cấu hình đăng bài</div>
+                          <label htmlFor="webhook-input">Webhook đăng bài</label>
+                          <input id="webhook-input" className="newinput"
+                            placeholder="https://hook.make.com/... hoặc URL webhook Discord"
+                            value={webhook} onChange={(e) => setWebhook(e.target.value)} />
+                          <div className="webhook-popover__row">
+                            <button className="btn save" onClick={() => { void saveWebhook(); setWebhookOpen(false); }}>Lưu</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                     {isMd && (
                       <button className="btn approve" disabled={publishing || !savedWebhook} onClick={doPublish}
-                        title={!savedWebhook ? 'Đặt webhook ở “Đăng bài ▾” phía trên để đăng' : undefined}>
+                        title={!savedWebhook ? 'Cần cấu hình webhook để đăng' : undefined}>
                         {pub ? 'Đăng lại' : 'Đăng bài'}
                       </button>
                     )}

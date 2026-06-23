@@ -268,14 +268,19 @@ export function DiffView({ ws, proposal, onChanged, onPrev, onNext, hasPrev, has
             <p className="empty">Đề xuất này chỉ gỡ bỏ tài liệu — xem chi tiết ở tab Văn xuôi.</p>
           )}
           {view === 'read' && readDocs?.map((d) => (
-            <article key={d.path} id={fileAnchor(d.path)} className="readdoc">
-              <div className="readdoc-cap">{d.path}</div>
+            <section key={d.path} id={fileAnchor(d.path)} className="readdoc">
+              {!isImage(d.path) && <div className="readdoc-cap">{d.path}</div>}
               {isImage(d.path)
-                ? <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
+                ? <figure className="doc-leaf doc-leaf--image">
+                    <img className="post-image" src={api.proposalAssetUrl(ws, proposal.id, d.path)} alt={d.path} />
+                    <figcaption className="doc-leaf__caption">{d.path}</figcaption>
+                  </figure>
                 : d.path.endsWith('.md')
-                  ? <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
-                  : <pre className="diff-body diff-body--pad">{d.content}</pre>}
-            </article>
+                  ? <article className="doc-leaf">
+                      <div className="doc" dangerouslySetInnerHTML={{ __html: renderMarkdown(d.content, resolvePostImage(d.path, (p) => api.proposalAssetUrl(ws, proposal.id, p))) }} />
+                    </article>
+                  : <div className="doc-leaf doc-leaf--text"><pre className="doc-pre">{d.content}</pre></div>}
+            </section>
           ))}
         </div>
       </div>

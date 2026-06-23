@@ -286,9 +286,9 @@ body::before {
 .filespane { height: calc(100% - 50px); display: flex; flex-direction: column; }
 .filespane .proposals { flex: 1; min-height: 0; height: auto; }
 .list {
-  width: 340px; flex-shrink: 0;
+  width: 264px; flex-shrink: 0;
   border-right: 1px solid var(--rule);
-  padding: 22px 18px; overflow: auto;
+  padding: 22px 15px; overflow: auto;
   background: linear-gradient(var(--paper), var(--paper));
 }
 .list h2 {
@@ -298,17 +298,24 @@ body::before {
 }
 /* The reader splits into a fixed head (folio + actions) and an independently
    scrolling body, so the document never slides under the folio. */
-.detail { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-.detail > .doc-empty { flex: 1; min-height: 0; }
-.detail__head {
-  flex-shrink: 0; padding: 0 36px;
-  background: linear-gradient(#fffdf8, var(--paper-2));
-  border-bottom: 1px solid var(--rule);
-  box-shadow: 0 6px 16px -14px rgba(31,27,22,.32);
+/* "A page on a writing desk": one warm desk surface runs continuously behind the
+   whole reader, and the filing label + floating page sit on it as a single
+   centred column. The desk lives on .detail (fixed) while the body scrolls over
+   it, so the page glides across a steady surface. */
+.detail {
+  flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden;
+  background: radial-gradient(135% 90% at 50% -8%, #efe6d5, var(--paper));
 }
-.detail__scroll { flex: 1; min-height: 0; overflow: auto; padding: 26px 36px 40px; }
-/* a single centred reading column (~70ch measure), keeping eye-travel short. */
-.detail__scroll > * { max-width: 760px; margin-left: auto; margin-right: auto; }
+.detail > .doc-empty { flex: 1; min-height: 0; }
+/* The folio is no longer a full-width chrome band — it's the page's filing label,
+   destyled onto the desk and aligned to the leaf column. */
+.detail__head { flex-shrink: 0; padding: 0 36px; background: transparent; }
+.detail__scroll { flex: 1; min-height: 0; overflow: auto; padding: 22px 36px 48px; background: transparent; }
+/* A single ~68ch reading column — the filing label and the page share one width
+   and centre with equal gutters in the reading area, at every window size. The
+   warm desk on either side reads as the page's margins. */
+.detail__scroll > *,
+.doc-folio { max-width: 720px; margin-left: auto; margin-right: auto; }
 
 /* Sticky review bar — keeps the proposal title + Approve/Reject in view while
    scrolling a long document, so the reviewer never has to scroll back up to act.
@@ -595,8 +602,11 @@ body::before {
 
 /* ---------- Reader folio: the fixed running header + action strip ---------- */
 .doc-folio {
+  /* width + horizontal centring come from the shared reading-column rule above,
+     so the filing label stays the exact width of the leaf below it. The hairline
+     rule reads as a letterhead, binding the label to the page. */
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  max-width: 760px; margin: 0 auto; padding: 13px 0 15px;
+  padding: 16px 0 14px; border-bottom: 1px solid var(--rule);
 }
 .doc-folio__id {
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; min-width: 0;
@@ -631,12 +641,12 @@ body::before {
 .doc-folio__actions .btn.approve:hover:not(:disabled) {
   box-shadow: 0 0 0 1px var(--forest), 0 6px 14px rgba(47,107,70,.28);
 }
-.btn.ghost {
+.btn.ghost.reject {
   background: transparent; color: var(--vermilion);
   border: 1px solid var(--vermilion); box-shadow: none;
   padding: 7px 14px; font-size: 12.5px;
 }
-.btn.ghost:hover:not(:disabled) { background: var(--vermilion); color: var(--paper); }
+.btn.ghost.reject:hover:not(:disabled) { background: var(--vermilion); color: var(--paper); }
 
 /* ---------- Reading view: rendered document ---------- */
 .viewtoggle {
@@ -699,14 +709,18 @@ body::before {
    so the nested .doc drops its own border/shadow (DiffView still uses the boxed
    .doc on its own). Adds a drop-cap and an asterism rule for a press feel. */
 .doc-leaf {
+  --doc-pad-top: 40px;
+  --doc-pad-x: clamp(28px, 4vw, 56px);
+  --doc-pad-bot: 44px;
   position: relative;
   background: #fffdf8;
   border: 1px solid var(--rule);
   border-radius: 10px;
-  box-shadow: 0 1px 2px rgba(31,27,22,.05), 0 18px 40px -22px rgba(31,27,22,.28);
-  padding: 56px clamp(32px, 5vw, 76px) 60px;
+  box-shadow: 0 1px 2px rgba(31,27,22,.06), 0 28px 60px -28px rgba(31,27,22,.34);
+  padding: var(--doc-pad-top) var(--doc-pad-x) var(--doc-pad-bot);
   margin-bottom: 26px;
   animation: rise .4s both;
+  overflow: hidden;
 }
 /* a hairline top sheen so the leaf reads as a raised printed page */
 .doc-leaf::before {
@@ -1088,6 +1102,25 @@ body::before {
   border-radius: 8px;
   margin: 8px 0;
   background: var(--rule-soft);
+}
+
+.doc img {
+  width: calc(100% + var(--doc-pad-x, 0px) * 2);
+  margin-left: calc(var(--doc-pad-x, 0px) * -1);
+  margin-right: calc(var(--doc-pad-x, 0px) * -1);
+  max-width: none;
+  border-radius: 0;
+  margin-top: 24px;
+  margin-bottom: 24px;
+}
+
+.doc > p:first-child:has(img:only-child) {
+  margin-top: calc(var(--doc-pad-top, 0px) * -1);
+  margin-bottom: 36px;
+}
+.doc > p:first-child:has(img:only-child) img {
+  margin-top: 0;
+  max-height: 400px;
 }
 
 /* ---------- Responsive: stack below the desk width ---------- */
@@ -1498,8 +1531,11 @@ pre.doc--new { padding-left: 20px; }
 .revtoc-item .dd { font-family: var(--mono); font-size: 12px; }
 .revtoc-item .dd.added { color: var(--forest); } .revtoc-item .dd.deleted { color: var(--vermilion); } .revtoc-item .dd.modified { color: var(--amber); }
 
-.revscroll { flex: 1; min-width: 0; overflow: auto; padding: 24px 40px 40px; }
-.revscroll > * { max-width: 720px; }
+.revscroll { flex: 1; min-width: 0; overflow: auto; padding: 26px 36px 44px; }
+/* One centred measure for everything in the pane (context card, toggle, leaf),
+   so the manuscript sits balanced between symmetric gutters — matching the Files
+   Reading Room — instead of hugging the ToC with a dead gutter on the right. */
+.revscroll > * { max-width: 760px; margin-left: auto; margin-right: auto; }
 .revscroll .viewtoggle { margin-top: 0; }
 
 /* footer: sequential nav */
@@ -1561,7 +1597,9 @@ pre.doc--new { padding-left: 20px; }
 }
 
 /* Reading view: minimal chrome — a light path caption above the manuscript. */
-.readdoc + .readdoc { margin-top: 36px; padding-top: 30px; border-top: 1px solid var(--rule-soft); }
+/* Each reading-view doc is its own raised leaf, so they self-separate — just add
+   breathing room between them (no divider rule between cards). */
+.readdoc + .readdoc { margin-top: 14px; }
 .readdoc-cap {
   font-family: var(--mono); font-size: 10.5px; letter-spacing: .02em;
   color: var(--ink-faint); margin-bottom: 12px;

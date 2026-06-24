@@ -1,22 +1,21 @@
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import type { Db } from '../db/types.js';
-import type { Mailer } from './mailer.js';
+import type { GoogleOAuth } from './google.js';
 import { generateId } from '../util/id.js';
-import { createMagicToken, readMagicToken, createSession, readSession } from './token.js';
+import { createState, readState, createSession, readSession } from './token.js';
 import { serializeCookie, parseCookies } from './cookie.js';
 
 export interface AuthDeps {
   db: Db;
   secret: string;
   appUrl: string;
-  mailer: Mailer;
-  /** When true, any valid email may sign in — the invite allowlist is bypassed. */
-  openSignup?: boolean;
+  google: GoogleOAuth;
   /** Called once when a brand-new tenant is created, to seed its demo content. */
   seedTenant?: (tenantId: string) => Promise<void>;
 }
 
 const COOKIE = 'commons_session';
+const STATE_COOKIE = 'commons_oauth_state';
 
 /** Fastify preHandler: require a valid session; sets request.auth = { userId, tenantId }. */
 export function makeRequireAuth(deps: AuthDeps) {
@@ -31,32 +30,32 @@ export function makeRequireAuth(deps: AuthDeps) {
   };
 }
 
-/** Register the magic-link auth routes on `app`. */
+/** Register the Google OAuth auth routes on `app`. */
 export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   const secure = deps.appUrl.startsWith('https');
-  // Allow sign-in when open signup is on, otherwise require an invite.
-  const allowed = (email: string) => deps.openSignup === true || deps.db.isInvited(email);
 
-  app.post('/api/auth/request', async (req, reply) => {
-    const { email } = (req.body ?? {}) as { email?: string };
-    if (!email || !email.includes('@')) return reply.code(400).send({ error: 'valid email required' });
-    if (allowed(email)) {
-      const token = createMagicToken(email, deps.secret);
-      const link = `${deps.appUrl}/api/auth/callback?token=${encodeURIComponent(token)}`;
-      await deps.mailer.send(
-        email,
-        'Your Commons sign-in link',
-        `Sign in to Commons:\n${link}\n\nThis link expires in 15 minutes.`,
-      );
-    }
-    return reply.send({ ok: true }); // generic — never leak invite status
+  app.get('/api/auth/google/start', async (_req, reply) => {
+    const state = createState(deps.secret);
+    reply.header('set-cookie', serializeCookie(STATE_COOKIE, state, {
+      httpOnly: true, secure, sameSite: 'Lax', path: '/', maxAge: 600,
+    }));
+    return reply.code(302).header('location', deps.google.authUrl(state)).send();
   });
 
-  app.get('/api/auth/callback', async (req, reply) => {
-    const { token } = req.query as { token?: string };
-    const email = token ? readMagicToken(token, deps.secret) : null;
-    if (!email || !allowed(email)) return reply.code(401).send({ error: 'invalid or expired link' });
+  app.get('/api/auth/google/callback', async (req, reply) => {
+    const fail = () => reply.code(302).header('location', deps.appUrl + '/?error=auth').send();
+    const { code, state } = req.query as { code?: string; state?: string };
+    const cookieState = parseCookies(req.headers.cookie)[STATE_COOKIE];
 
+    // CSRF: query state must match the cookie state and be a valid signed token.
+    if (!code || !state || !cookieState || state !== cookieState || !readState(state, deps.secret)) {
+      return fail();
+    }
+
+    const profile = await deps.google.exchangeCode(code);
+    if (!profile || !profile.emailVerified) return fail();
+
+    const email = profile.email.trim().toLowerCase();
     let user = deps.db.getUserByEmail(email);
     if (!user) {
       const tenantId = generateId('t');
@@ -65,19 +64,16 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
       // Seed demo content so the first screen is populated. A seed failure must
       // never block sign-in — log and continue with an empty workspace.
       if (deps.seedTenant) {
-        try {
-          await deps.seedTenant(tenantId);
-        } catch (e) {
-          req.log.error({ err: e, tenantId }, 'failed to seed onboarding workspace');
-        }
+        try { await deps.seedTenant(tenantId); }
+        catch (e) { req.log.error({ err: e, tenantId }, 'failed to seed onboarding workspace'); }
       }
     }
-    deps.db.markInviteAccepted(email);
 
     const session = createSession(user.id, deps.secret);
-    reply.header('set-cookie', serializeCookie(COOKIE, session, {
-      httpOnly: true, secure, sameSite: 'Lax', path: '/', maxAge: 30 * 24 * 3600,
-    }));
+    reply.header('set-cookie', [
+      serializeCookie(COOKIE, session, { httpOnly: true, secure, sameSite: 'Lax', path: '/', maxAge: 30 * 24 * 3600 }),
+      serializeCookie(STATE_COOKIE, '', { httpOnly: true, secure, sameSite: 'Lax', path: '/', maxAge: 0 }),
+    ]);
     return reply.code(302).header('location', deps.appUrl + '/').send();
   });
 
@@ -89,8 +85,7 @@ export function registerAuthRoutes(app: FastifyInstance, deps: AuthDeps): void {
   });
 
   // Unauthenticated-friendly probe: always 200 so the SPA's initial "am I
-  // logged in?" check never surfaces a 401 in the browser console (the browser
-  // logs every 4xx fetch regardless of how JS handles it).
+  // logged in?" check never surfaces a 401 in the browser console.
   app.get('/api/auth/session', async (req) => {
     const raw = parseCookies(req.headers.cookie)[COOKIE];
     const userId = raw ? readSession(raw, deps.secret) : null;

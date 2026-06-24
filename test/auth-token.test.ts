@@ -1,23 +1,29 @@
 import { describe, it, expect } from 'vitest';
-import { createMagicToken, readMagicToken, createSession, readSession } from '../src/auth/token.js';
+import { createState, readState, createSession, readSession } from '../src/auth/token.js';
 
 const SECRET = 'test-secret';
 
-describe('auth/token', () => {
-  it('reads back the email from a fresh magic token (normalised)', () => {
-    const t = createMagicToken('Alice@Example.com', SECRET);
-    expect(readMagicToken(t, SECRET)).toBe('alice@example.com');
+describe('state token', () => {
+  it('round-trips a fresh state', () => {
+    const s = createState(SECRET);
+    expect(readState(s, SECRET)).toBe(true);
   });
 
-  it('rejects an expired magic token', () => {
-    const t = createMagicToken('a@x.com', SECRET, 1000);
-    expect(readMagicToken(t, SECRET, Date.now() + 2000)).toBeNull();
+  it('rejects a tampered state', () => {
+    expect(readState('garbage', SECRET)).toBe(false);
   });
 
-  it('rejects a magic token signed with another secret', () => {
-    expect(readMagicToken(createMagicToken('a@x.com', SECRET), 'other')).toBeNull();
+  it('rejects a state signed with another secret', () => {
+    expect(readState(createState(SECRET), 'other')).toBe(false);
   });
 
+  it('rejects an expired state', () => {
+    const s = createState(SECRET, 1000);
+    expect(readState(s, SECRET, Date.now() + 2000)).toBe(false);
+  });
+});
+
+describe('session token', () => {
   it('reads back the userId from a fresh session', () => {
     const s = createSession('usr-1', SECRET);
     expect(readSession(s, SECRET)).toBe('usr-1');

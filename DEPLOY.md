@@ -22,8 +22,9 @@ beyond one replica** (see ADR-1 in `SAAS_BETA_ARCHITECTURE.md`).
    - `COMMONS_APP_URL` — `https://<your-domain>`.
    - `COMMONS_AUTH_SECRET` — `openssl rand -hex 32`.
    - `ANTHROPIC_API_KEY` — required for the agent in production (pay-per-token).
-   - `COMMONS_INVITES` — comma-separated invited emails.
-   - Mailer vars (see step 3 setup) so magic links can be sent.
+   - `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` — Google OAuth client credentials.
+     Register the redirect URI `https://<your-domain>/api/auth/google/callback`
+     in the Google Cloud Console.
 
 3. Bring it up:
 
@@ -42,8 +43,8 @@ beyond one replica** (see ADR-1 in `SAAS_BETA_ARCHITECTURE.md`).
 
 - [ ] `GET /api/health` returns `{"ok":true}` over HTTPS.
 - [ ] The login page loads at `https://<your-domain>/`.
-- [ ] Requesting a magic link for an invited email sends an email.
-- [ ] Following the magic link signs in and the workspace list renders.
+- [ ] Clicking "Đăng nhập với Google" redirects to the Google consent screen.
+- [ ] Completing Google sign-in returns to the app and the workspace list renders.
 - [ ] An agent run produces a proposal (requires `ANTHROPIC_API_KEY`).
 
 ## Backup & restore

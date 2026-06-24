@@ -27,7 +27,7 @@ export interface RateLimitOpts { global: RateLimit; auth: RateLimit; }
 
 const DEFAULTS: RateLimitOpts = {
   global: { max: 300, windowMs: 60_000 },  // 300 req/min/IP overall
-  auth:   { max: 10,  windowMs: 60_000 },  // 10 magic-link requests/min/IP
+  auth:   { max: 30,  windowMs: 60_000 },  // 30 sign-in requests/min/IP
 };
 
 /** Install an onRequest rate-limit hook. Auth endpoints get a stricter bucket. */
@@ -36,7 +36,10 @@ export function registerRateLimit(app: FastifyInstance, opts: RateLimitOpts = DE
   app.addHook('onRequest', async (req, reply) => {
     const now = Date.now();
     const ip = req.ip || 'unknown';
-    const isAuth = req.url.startsWith('/api/auth/');
+    // The session probe is a cheap, read-only cookie check the SPA fires on every
+    // page load — keep it in the general bucket. Only the interactive sign-in
+    // endpoints (google/start, google/callback, logout) get the stricter bucket.
+    const isAuth = req.url.startsWith('/api/auth/') && !req.url.startsWith('/api/auth/session');
     const limit = isAuth ? opts.auth : opts.global;
     const key = `${isAuth ? 'auth' : 'global'}:${ip}`;
     if (!rl.check(key, limit, now)) {

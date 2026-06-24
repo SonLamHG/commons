@@ -6,7 +6,7 @@ import { WorkspaceSerializer } from '../util/serializer.js';
 import { buildApi } from './server.js';
 import { createDb } from '../db/index.js';
 import { createClaudeRunner } from '../agent/runner.js';
-import { mailerFromEnv } from '../auth/mailer.js';
+import { createGoogleOAuth } from '../auth/google.js';
 import { seedOnboarding } from '../onboarding/seed.js';
 import { loadEnv } from '../util/env.js';
 
@@ -23,12 +23,19 @@ if (!authSecret) {
   process.exit(1);
 }
 
-const db = createDb(join(root, 'commons.db'));
-
-// Beta allowlist: seed invited emails from COMMONS_INVITES (comma-separated).
-for (const email of (process.env.COMMONS_INVITES ?? '').split(',').map((s) => s.trim()).filter(Boolean)) {
-  db.addInvite(email);
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+if (!googleClientId || !googleClientSecret) {
+  process.stderr.write('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are required (set them in .env) — refusing to start.\n');
+  process.exit(1);
 }
+const google = createGoogleOAuth({
+  clientId: googleClientId,
+  clientSecret: googleClientSecret,
+  redirectUri: `${appUrl}/api/auth/google/callback`,
+});
+
+const db = createDb(join(root, 'commons.db'));
 
 const registry = createEngineRegistry(root);
 const serializer = new WorkspaceSerializer();
@@ -47,9 +54,8 @@ const app = buildApi({
   db,
   authSecret,
   appUrl,
-  mailer: mailerFromEnv(),
+  google,
   agentRunner: createClaudeRunner(),
-  openSignup: process.env.COMMONS_OPEN_SIGNUP === 'true',
   seedTenant,
 });
 

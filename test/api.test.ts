@@ -8,12 +8,12 @@ import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { buildApi } from '../src/api/server.js';
 import { createDb } from '../src/db/index.js';
 import { createSession } from '../src/auth/token.js';
-import type { Mailer } from '../src/auth/mailer.js';
+import type { GoogleOAuth } from '../src/auth/google.js';
 import type { AgentRunner } from '../src/agent/types.js';
 
 const SECRET = 'test-secret';
 const APP_URL = 'http://localhost:8787';
-const noopMailer: Mailer = { async send() {} };
+const noopGoogle: GoogleOAuth = { authUrl: () => 'https://accounts.google.com', async exchangeCode() { return null; } };
 
 /** Build an authenticated app over `root` with a single tenant + session cookie. */
 function setup(root: string, agentRunner?: AgentRunner) {
@@ -25,7 +25,7 @@ function setup(root: string, agentRunner?: AgentRunner) {
   const cookie = `commons_session=${createSession(user.id, SECRET)}`;
   const app = buildApi({
     registry, serializer: new WorkspaceSerializer(), db,
-    authSecret: SECRET, appUrl: APP_URL, mailer: noopMailer, agentRunner,
+    authSecret: SECRET, appUrl: APP_URL, google: noopGoogle, agentRunner,
   });
   return { registry, db, tenantId, user, cookie, app, engine: registry.forTenant(tenantId) };
 }

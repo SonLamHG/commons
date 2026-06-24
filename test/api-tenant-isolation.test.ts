@@ -7,10 +7,10 @@ import { WorkspaceSerializer } from '../src/util/serializer.js';
 import { buildApi } from '../src/api/server.js';
 import { createDb } from '../src/db/index.js';
 import { createSession } from '../src/auth/token.js';
-import type { Mailer } from '../src/auth/mailer.js';
+import type { GoogleOAuth } from '../src/auth/google.js';
 
 const SECRET = 'test-secret';
-const noop: Mailer = { async send() {} };
+const noopGoogle: GoogleOAuth = { authUrl: () => 'https://accounts.google.com', async exchangeCode() { return null; } };
 const json = (r: { payload: string }) => JSON.parse(r.payload);
 
 let root: string;
@@ -29,7 +29,7 @@ beforeEach(async () => {
   const b = db.createUser('b@x.com', 'tenantB');
   cookieA = `commons_session=${createSession(a.id, SECRET)}`;
   cookieB = `commons_session=${createSession(b.id, SECRET)}`;
-  app = buildApi({ registry, serializer: new WorkspaceSerializer(), db, authSecret: SECRET, appUrl: 'http://localhost:8787', mailer: noop });
+  app = buildApi({ registry, serializer: new WorkspaceSerializer(), db, authSecret: SECRET, appUrl: 'http://localhost:8787', google: noopGoogle });
 
   // tenant A owns a workspace called "shared"
   await registry.forTenant('tenantA').createWorkspace({ id: 'shared', seed: { 'a.md': 'A-only' } });

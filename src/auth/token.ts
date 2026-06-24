@@ -1,21 +1,22 @@
+import { randomBytes } from 'node:crypto';
 import { sign, verify } from './sign.js';
 
 const enc = (obj: unknown): string => Buffer.from(JSON.stringify(obj)).toString('base64url');
 const dec = (s: string): unknown => JSON.parse(Buffer.from(s, 'base64url').toString('utf8'));
 
-/** Magic-link token carrying a normalised email, valid for ttlMs (default 15 min). */
-export function createMagicToken(email: string, secret: string, ttlMs = 15 * 60_000): string {
-  return sign(enc({ email: email.trim().toLowerCase(), exp: Date.now() + ttlMs }), secret);
+/** Short-lived signed CSRF state for the OAuth round-trip (default 10 min). */
+export function createState(secret: string, ttlMs = 10 * 60_000): string {
+  return sign(enc({ nonce: randomBytes(8).toString('base64url'), exp: Date.now() + ttlMs }), secret);
 }
 
-/** Return the email if the token is valid and unexpired, else null. */
-export function readMagicToken(token: string, secret: string, now = Date.now()): string | null {
-  const payload = verify(token, secret);
-  if (!payload) return null;
+/** True if the state is a valid, unexpired token signed by us. */
+export function readState(state: string, secret: string, now = Date.now()): boolean {
+  const payload = verify(state, secret);
+  if (!payload) return false;
   try {
-    const o = dec(payload) as { email?: unknown; exp?: unknown };
-    return typeof o.email === 'string' && typeof o.exp === 'number' && o.exp > now ? o.email : null;
-  } catch { return null; }
+    const o = dec(payload) as { exp?: unknown };
+    return typeof o.exp === 'number' && o.exp > now;
+  } catch { return false; }
 }
 
 /** Session value carrying a userId, valid for ttlMs (default 30 days). */

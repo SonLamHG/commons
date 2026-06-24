@@ -16,14 +16,6 @@ describe('api.auth', () => {
     await expect(api.auth.me()).rejects.toBeInstanceOf(UnauthorizedError);
   });
 
-  it('request() POSTs the email', async () => {
-    const f = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
-    vi.stubGlobal('fetch', f);
-    await api.auth.request('a@x.com');
-    expect(f.mock.calls[0][0]).toBe('/api/auth/request');
-    expect(JSON.parse((f.mock.calls[0][1] as RequestInit).body as string)).toEqual({ email: 'a@x.com' });
-  });
-
   it('logout() POSTs /api/auth/logout', async () => {
     const f = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
     vi.stubGlobal('fetch', f);

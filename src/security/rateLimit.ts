@@ -27,7 +27,7 @@ export interface RateLimitOpts { global: RateLimit; auth: RateLimit; }
 
 const DEFAULTS: RateLimitOpts = {
   global: { max: 300, windowMs: 60_000 },  // 300 req/min/IP overall
-  auth:   { max: 10,  windowMs: 60_000 },  // 10 magic-link requests/min/IP
+  auth:   { max: 10,  windowMs: 60_000 },  // 10 auth requests/min/IP
 };
 
 /** Install an onRequest rate-limit hook. Auth endpoints get a stricter bucket. */

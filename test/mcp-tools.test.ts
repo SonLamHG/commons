@@ -80,6 +80,28 @@ describe('mcp tools', () => {
     expect(await tools['read_file'].run({ workspace: 'ws1', path: 'a.md' })).toBe('hello');
   });
 
+  it('read_file slices long files by offset/limit to keep context small', async () => {
+    const created = await tools['create_proposal'].run({ workspace: 'ws1', title: 'big' });
+    const proposalId = created.trim();
+    const body = Array.from({ length: 10 }, (_, i) => `line ${i + 1}`).join('\n');
+    await tools['write_proposal_file'].run({ workspace: 'ws1', proposalId, path: 'big.md', content: body });
+    await tools['submit_proposal'].run({ workspace: 'ws1', proposalId, message: 'add big' });
+    // merge so it lands in durable state read_file sees
+    const engine = createEngine(root);
+    await new WorkspaceSerializer().run('ws1', () => engine.mergeProposal('ws1', proposalId));
+
+    const slice = await tools['read_file'].run({ workspace: 'ws1', path: 'big.md', offset: 3, limit: 2 });
+    expect(slice).toContain('line 3');
+    expect(slice).toContain('line 4');
+    expect(slice).not.toContain('line 5');
+    expect(slice).toContain('lines 3-4 of 10');
+
+    // no offset/limit still returns the whole file unsliced (no truncation note)
+    const full = await tools['read_file'].run({ workspace: 'ws1', path: 'big.md' });
+    expect(full.replace(/\r/g, '').trimEnd()).toBe(body);
+    expect(full).not.toContain('showing lines');
+  });
+
   it('write_proposal_file description guides agents to drafts/', () => {
     const list = makeTools({ engine: createEngine(root), serializer: new WorkspaceSerializer(), genId: generateId });
     const t = list.find((x) => x.name === 'write_proposal_file')!;

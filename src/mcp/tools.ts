@@ -61,9 +61,30 @@ export function createTools({ engine, serializer, genId, imageGenerator }: ToolD
     },
     {
       name: 'read_file',
-      description: 'Read a file from a workspace (durable main state).',
-      inputSchema: { workspace: z.string(), path: z.string() },
-      run: async ({ workspace, path }) => engine.readFile(workspace, path),
+      description:
+        'Read a file from a workspace (durable main state). For long files, pass offset ' +
+        '(1-based start line) and/or limit (max lines) to read just a slice instead of the ' +
+        'whole file — this keeps your context small. Omit both to read the entire file.',
+      inputSchema: {
+        workspace: z.string(),
+        path: z.string(),
+        offset: z.number().int().positive().optional(),
+        limit: z.number().int().positive().optional(),
+      },
+      run: async ({ workspace, path, offset, limit }) => {
+        const content = await engine.readFile(workspace, path);
+        if (offset === undefined && limit === undefined) return content;
+        const lines = content.split('\n');
+        const start = offset ? offset - 1 : 0;
+        const end = limit ? start + limit : lines.length;
+        const slice = lines.slice(start, end).join('\n');
+        const shownTo = Math.min(end, lines.length);
+        const note =
+          shownTo < lines.length || start > 0
+            ? `\n\n[showing lines ${start + 1}-${shownTo} of ${lines.length}]`
+            : '';
+        return slice + note;
+      },
     },
     {
       name: 'list_proposals',

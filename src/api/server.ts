@@ -6,7 +6,7 @@ import { WorkspaceSerializer, scopeKey } from '../util/serializer.js';
 import { createPublishStore, type PublishStore } from '../publish/store.js';
 import type { AgentRunner } from '../agent/types.js';
 import type { Db } from '../db/types.js';
-import type { Mailer } from '../auth/mailer.js';
+import type { GoogleOAuth } from '../auth/google.js';
 import { registerAuthRoutes, makeRequireAuth } from '../auth/routes.js';
 import { toPlainText } from '../publish/markdown.js';
 import multipart from '@fastify/multipart';
@@ -73,16 +73,14 @@ export interface ApiDeps {
   db: Db;
   authSecret: string;
   appUrl: string;
-  mailer: Mailer;
+  google: GoogleOAuth;
   agentRunner?: AgentRunner;
-  /** When true, bypass the invite allowlist — any valid email may sign in. */
-  openSignup?: boolean;
   /** Called once per new tenant to seed its demo content. */
   seedTenant?: (tenantId: string) => Promise<void>;
 }
 
 export function buildApi(deps: ApiDeps): FastifyInstance {
-  const { registry, serializer, db, authSecret, appUrl, mailer, agentRunner, openSignup, seedTenant } = deps;
+  const { registry, serializer, db, authSecret, appUrl, google, agentRunner, seedTenant } = deps;
   const app = Fastify({ forceCloseConnections: true, trustProxy: true });
   registerSecurityHeaders(app);
   registerCors(app, appUrl);
@@ -90,8 +88,8 @@ export function buildApi(deps: ApiDeps): FastifyInstance {
   app.register(multipart, { limits: { fileSize: 25 * 1024 * 1024 } });
 
   // --- auth: mount routes, then gate everything else under /api ---
-  registerAuthRoutes(app, { db, secret: authSecret, appUrl, mailer, openSignup, seedTenant });
-  const requireAuth = makeRequireAuth({ db, secret: authSecret, appUrl, mailer });
+  registerAuthRoutes(app, { db, secret: authSecret, appUrl, google, seedTenant });
+  const requireAuth = makeRequireAuth({ db, secret: authSecret, appUrl, google });
   app.addHook('preHandler', async (req, reply) => {
     if (!req.url.startsWith('/api/')) return;        // static / SPA
     if (req.url.startsWith('/api/auth/')) return;     // auth endpoints

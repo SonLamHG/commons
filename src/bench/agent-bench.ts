@@ -3,39 +3,56 @@
  * (real Anthropic API) against an existing workspace under COMMONS_ROOT (./data),
  * scores each run, writes per-turn NDJSON traces, and cleans up created proposals.
  *
- * Usage (--target, NOT --workspace/--ws: npm prefix-matches those to its own
- * reserved --workspace flag and swallows them before the script sees them):
- *   npm run bench:agent -- --target content-calendar --runs 10
- *   npm run bench:agent -- --target content-calendar --runs 3 --keep
- *   npm run bench:agent -- --target content-calendar --prompt "..."
- * (Direct tsx also accepts --ws / --workspace:
- *   npx tsx src/bench/agent-bench.ts --workspace content-calendar --runs 10)
+ * Usage. npm strips --flag NAMES (parses them as its own config) and forwards only
+ * bare values, so under `npm run` use POSITIONAL args: <workspace> [runs]:
+ *   npm run bench:agent -- content-calendar 10
+ * For flags (--prompt, --keep) invoke tsx directly:
+ *   npx tsx src/bench/agent-bench.ts content-calendar --runs 10 --keep
+ *   npx tsx src/bench/agent-bench.ts --ws content-calendar --prompt "..."
  */
 import { join } from 'node:path';
 import { loadEnv } from '../util/env.js';
 import { createEngine } from '../engine/index.js';
-
-loadEnv(); // make ANTHROPIC_API_KEY / COMMONS_ROOT from .env available (entry-point convention)
 import { createClaudeRunner } from '../agent/runner.js';
 import { scoreRun, type RunScore } from './score.js';
 import type { AgentEvent } from '../agent/types.js';
 
+loadEnv(); // make ANTHROPIC_API_KEY / COMMONS_ROOT from .env available (entry-point convention)
+
 const DEFAULT_PROMPT = 'Viết một bài LinkedIn ngắn giới thiệu tính năng review UI mới của Commons.';
 
-function arg(name: string, fallback?: string): string | undefined {
-  const i = process.argv.indexOf(`--${name}`);
-  return i >= 0 && i + 1 < process.argv.length ? process.argv[i + 1] : fallback;
+const VALUE_FLAGS = new Set(['target', 'ws', 'workspace', 'runs', 'prompt']);
+
+/** Walk argv into named flags + bare positionals, so the script works both under
+ *  `npm run` (which forwards only positionals) and direct `tsx` (which keeps flags). */
+function parseArgs(argv: string[]): { flags: Record<string, string>; bools: Set<string>; positionals: string[] } {
+  const flags: Record<string, string> = {};
+  const bools = new Set<string>();
+  const positionals: string[] = [];
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith('--')) {
+      const name = a.slice(2);
+      if (VALUE_FLAGS.has(name) && i + 1 < argv.length) { flags[name] = argv[++i]; }
+      else { bools.add(name); }
+    } else {
+      positionals.push(a);
+    }
+  }
+  return { flags, bools, positionals };
 }
-const hasFlag = (name: string) => process.argv.includes(`--${name}`);
 
 async function main() {
-  // --target is the documented flag (npm prefix-matches --ws/--workspace to its own
-  // reserved flag); accept --ws/--workspace too for direct `tsx` invocation.
-  const workspace = arg('target') ?? arg('ws') ?? arg('workspace');
-  if (!workspace) { console.error('error: --target <workspace-id> is required'); process.exit(1); }
-  const runs = Number(arg('runs', '10'));
-  const prompt = arg('prompt', DEFAULT_PROMPT)!;
-  const keep = hasFlag('keep');
+  const { flags, bools, positionals } = parseArgs(process.argv.slice(2));
+  // Flags win when given (direct tsx); positionals are the npm-friendly fallback.
+  const workspace = flags.target ?? flags.ws ?? flags.workspace ?? positionals[0];
+  if (!workspace) {
+    console.error('error: workspace id required — `npm run bench:agent -- <workspace> [runs]`');
+    process.exit(1);
+  }
+  const runs = Number(flags.runs ?? positionals[1] ?? '10');
+  const prompt = flags.prompt ?? DEFAULT_PROMPT;
+  const keep = bools.has('keep');
 
   const root = process.env.COMMONS_ROOT ?? join(process.cwd(), 'data');
   // Token traces for this benchmark land here (read by createClaudeRunner via env).

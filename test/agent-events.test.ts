@@ -27,3 +27,48 @@ describe('toAgentEvent', () => {
     expect(toAgentEvent({ type: 'user', message: {} } as any)).toEqual([]);
   });
 });
+
+describe('toAgentEvent usage mapping', () => {
+  it('emits a usage event from an assistant message usage block', () => {
+    const msg = {
+      type: 'assistant',
+      message: {
+        content: [{ type: 'text', text: 'hi' }],
+        usage: {
+          input_tokens: 100,
+          output_tokens: 20,
+          cache_read_input_tokens: 80,
+          cache_creation_input_tokens: 10,
+        },
+      },
+    };
+    const events = toAgentEvent(msg as any);
+    const usage = events.find((e) => e.type === 'usage');
+    expect(usage).toEqual({
+      type: 'usage',
+      inputTokens: 100,
+      outputTokens: 20,
+      cacheReadTokens: 80,
+      cacheCreationTokens: 10,
+    });
+    expect(events.some((e) => e.type === 'text')).toBe(true);
+  });
+
+  it('emits no usage event when the assistant message has no usage', () => {
+    const msg = { type: 'assistant', message: { content: [{ type: 'text', text: 'hi' }] } };
+    const events = toAgentEvent(msg as any);
+    expect(events.some((e) => e.type === 'usage')).toBe(false);
+  });
+
+  it('defaults missing usage sub-fields to 0', () => {
+    const msg = { type: 'assistant', message: { content: [], usage: { input_tokens: 5 } } };
+    const usage = toAgentEvent(msg as any).find((e) => e.type === 'usage');
+    expect(usage).toEqual({
+      type: 'usage',
+      inputTokens: 5,
+      outputTokens: 0,
+      cacheReadTokens: 0,
+      cacheCreationTokens: 0,
+    });
+  });
+});

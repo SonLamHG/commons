@@ -7,6 +7,12 @@ type AssistantMessage = {
   type: 'assistant';
   message?: {
     content?: Array<{ type: string; text?: string; name?: string; input?: unknown }>;
+    usage?: {
+      input_tokens?: number;
+      output_tokens?: number;
+      cache_read_input_tokens?: number;
+      cache_creation_input_tokens?: number;
+    };
   };
 };
 
@@ -28,6 +34,16 @@ export function toAgentEvent(msg: SDKMessage): AgentEvent[] {
     for (const c of content) {
       if (c.type === 'text' && c.text) out.push({ type: 'text', text: c.text });
       else if (c.type === 'tool_use') out.push({ type: 'tool', name: c.name ?? '', input: c.input });
+    }
+    const u = m.message?.usage;
+    if (u) {
+      out.push({
+        type: 'usage',
+        inputTokens: u.input_tokens ?? 0,
+        outputTokens: u.output_tokens ?? 0,
+        cacheReadTokens: u.cache_read_input_tokens ?? 0,
+        cacheCreationTokens: u.cache_creation_input_tokens ?? 0,
+      });
     }
     return out;
   }

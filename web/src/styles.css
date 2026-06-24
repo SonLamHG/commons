@@ -11,14 +11,19 @@
   --ink:        #1f1b16;   /* near-black, warm */
   --ink-soft:   #5c5347;   /* secondary text */
   --ink-faint:  #756b59;   /* tertiary / empty states — darkened to meet WCAG AA (~4.6:1 on paper) */
-  --rule:       #e2d8c6;   /* hairline rules / borders */
-  --rule-soft:  #ece3d4;
+  /* Hairlines are ink-tinted and translucent, not opaque beige — so every
+     border picks up the warmth of the surface beneath it (paper / paper-2 /
+     white card) and reads as a fine engraved line rather than a flat stroke. */
+  --rule:        color-mix(in srgb, var(--ink) 11%, transparent);  /* default hairline */
+  --rule-soft:   color-mix(in srgb, var(--ink) 6%, transparent);   /* whisper-soft divider */
+  --rule-strong: color-mix(in srgb, var(--ink) 17%, transparent);  /* defined, but still 1px */
 
   --vermilion:  #c43d23;   /* stamp red — reject / destructive */
   --vermilion-2:#e8d6cf;
   --forest:     #2f6b46;   /* approve / merged */
   --forest-2:   #d9e6dc;
-  --amber:      #a9701a;   /* submitted / pending */
+  --amber:      #a9701a;   /* submitted / pending — accents, dots, borders */
+  --amber-ink:  #7a4f12;   /* darker amber for TEXT on amber-2 (~5.5:1 AA) */
   --amber-2:    #efe2c9;
   --slate:      #6b6256;   /* discarded / neutral */
   --indigo:     #36507a;   /* open / info */
@@ -26,6 +31,22 @@
 
   --shadow-sm: 0 1px 0 rgba(31,27,22,.04), 0 1px 2px rgba(31,27,22,.06);
   --shadow-md: 0 2px 4px rgba(31,27,22,.06), 0 8px 24px rgba(31,27,22,.08);
+
+  /* Letterpress deboss: a bright top edge + a whisper of shadow along the
+     bottom, so a bordered surface reads as PRESSED INTO the paper rather than
+     floating on it. Compose with the drop shadows: box-shadow: var(--shadow-sm), var(--deboss). */
+  --deboss: inset 0 1px 0 rgba(255,255,255,.65), inset 0 -1px 0 rgba(31,27,22,.035);
+  /* A hairline that floats clear of its container's top/bottom edges — for
+     vertical separators that shouldn't touch the corners (jeweller's detail). */
+  --rule-inset: linear-gradient(transparent 22%, var(--rule-strong) 22%, var(--rule-strong) 78%, transparent 78%) 1;
+
+  /* Corner scale — a deliberate four-step rhythm so radii nest rather than
+     drift: chips inside controls inside cards inside panels. */
+  --r-chip:    4px;   /* badges, kbd, inline code, tiny tags */
+  --r-control: 7px;   /* inputs, icon buttons, filter/seg pills */
+  --r-card:    10px;  /* list rows, document leaf, chat box */
+  --r-panel:   13px;  /* floating containers: login, popovers, context card */
+  --r-ledger:  3px 13px 13px 13px;  /* the signature asymmetric corner */
 
   --serif: 'Fraunces', Georgia, 'Times New Roman', serif;
   --sans:  'Hanken Grotesk', ui-sans-serif, system-ui, sans-serif;
@@ -51,7 +72,9 @@ body {
 /* very subtle grain overlay */
 body::before {
   content: "";
-  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  /* Sits above all page content (sticky bars z:5, popovers z:20) but BELOW the
+     modal layer (z:1000), so the grain never veils a confirmation dialog. */
+  position: fixed; inset: 0; z-index: 500; pointer-events: none;
   opacity: .035;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -169,12 +192,24 @@ body::before {
 .ws-del:focus-visible { opacity: 1; pointer-events: auto; }
 .ws-del:hover { background: var(--vermilion-2); color: var(--vermilion); }
 .ws-del:focus-visible { outline: 2px solid var(--vermilion); outline-offset: 1px; }
+/* Touch devices have no hover — the delete control would be unreachable.
+   Always reveal it where the primary pointer can't hover, and expand the tap
+   area to the 44px minimum without growing the visual glyph. */
+.ws-del::after {
+  content: ""; position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+}
+@media (hover: none) {
+  .ws-del { opacity: 1; pointer-events: auto; }
+}
 
 /* ---------- Sidebar colophon (anchors the masthead) ---------- */
 .colophon { margin-top: auto; padding-top: 22px; }
 .colophon-rule {
   display: block; height: 1px;
-  background: var(--rule);
+  /* anchored at the masthead margin, dissolving toward the page edge */
+  background: linear-gradient(90deg, var(--rule-strong), transparent);
   margin-bottom: 14px;
 }
 .colophon p {
@@ -223,9 +258,11 @@ body::before {
   margin: 14px 0 0;
 }
 .frontpage-head .period { color: var(--vermilion); }
-.dblrule { margin: 22px auto; width: 64px; }
-.dblrule span { display: block; height: 1px; background: var(--ink); opacity: .5; }
-.dblrule span:first-child { margin-bottom: 3px; }
+/* an engraver's swelled rule: brightest at the centre, tapering to points at
+   both ends. The two lines differ in reach so the pair reads as struck, not drawn. */
+.dblrule { margin: 22px auto; width: 88px; }
+.dblrule span { display: block; height: 1px; background: linear-gradient(90deg, transparent, var(--ink), transparent); opacity: .5; }
+.dblrule span:first-child { margin-bottom: 3px; width: 64%; margin-left: auto; margin-right: auto; }
 .frontpage-lede {
   font-family: var(--serif);
   font-size: 16.5px; line-height: 1.62;
@@ -276,6 +313,11 @@ body::before {
 }
 .tab:hover { color: var(--ink); }
 .tab.active { color: var(--ink); border-bottom-color: var(--vermilion); }
+
+/* The tabpanel is a semantics-only wrapper (role + aria-labelledby); it must not
+   introduce a box, or the panes' height:calc(100% - 50px) would resolve against
+   it (auto height) instead of .main. display:contents keeps the old layout. */
+.tabpanel { display: contents; }
 
 .proposals { display: flex; height: calc(100% - 50px); }
 
@@ -331,7 +373,7 @@ body::before {
   /* faint top sheen → always reads as a raised control band, not page (solid base
      keeps content from showing through when stuck) */
   background: linear-gradient(#fffdf8, var(--paper-2));
-  border-bottom: 1.5px solid var(--rule);
+  border-bottom: 1px solid var(--rule-strong);
   box-shadow: 0 6px 16px -12px rgba(31,27,22,.4), inset 0 1px 0 rgba(255,255,255,.6);
 }
 /* Paper mask filling the .detail top padding, so nothing scrolls into view
@@ -345,7 +387,8 @@ body::before {
 .detail .reviewbar h3 .badge { transform: none; font-size: 10px; padding: 4px 9px; border-width: 1.5px; }
 .reviewbar-actions {
   margin: 0; gap: 10px;
-  padding-left: 16px; border-left: 1px solid var(--rule);
+  padding-left: 16px;
+  border-left: 1px solid transparent; border-image: var(--rule-inset);
 }
 .reviewbar-actions .btn { padding: 8px 16px; font-size: 13px; }
 /* merge is irreversible — give it extra visual weight so it reads as the primary, deliberate act */
@@ -372,10 +415,10 @@ body::before {
   width: 100%; text-align: left;
   background: var(--paper-2);
   border: 1px solid var(--rule);
-  border-radius: 9px;
+  border-radius: var(--r-card);
   padding: 12px 13px; margin-bottom: 9px;
   cursor: pointer;
-  box-shadow: var(--shadow-sm);
+  box-shadow: var(--shadow-sm), var(--deboss);
   transition: border-color .15s, box-shadow .15s, transform .1s, background .15s;
   animation: rise .4s both;
 }
@@ -387,7 +430,7 @@ body::before {
   transform: scaleY(0); transform-origin: center;
   transition: transform .18s cubic-bezier(.2,.7,.2,1);
 }
-.prop:hover { border-color: var(--ink-faint); transform: translateY(-1px); }
+.prop:hover { border-color: var(--rule-strong); transform: translateY(-1px); }
 .prop:hover::before { transform: scaleY(.5); }
 .prop.active {
   border-color: var(--ink);
@@ -430,7 +473,7 @@ body::before {
 .prop-group__head[data-group="submitted"]::before { border-color: var(--amber); }
 .prop-group__head[data-group="open"]::before      { border-color: var(--indigo); }
 .prop-group__head[data-group="resolved"]::before  { border-color: var(--slate); background: var(--slate); }
-.prop-group__head::after { content: ""; flex: 1; height: 1px; background: var(--rule); }
+.prop-group__head::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, var(--rule-strong), transparent); }
 .prop-group__count {
   font-family: var(--mono); font-size: 10px; font-weight: 500;
   color: var(--ink-faint); background: rgba(31,27,22,.05);
@@ -460,13 +503,13 @@ body::before {
   font-family: var(--sans);
   font-size: 9.5px; font-weight: 700;
   text-transform: uppercase; letter-spacing: .1em;
-  padding: 3px 8px; border-radius: 4px;
+  padding: 3px 8px; border-radius: var(--r-chip);
   border: 1.5px solid currentColor;
   background: transparent;
   flex-shrink: 0;
   line-height: 1.4;
 }
-.badge.submitted { color: var(--amber);  background: var(--amber-2); }
+.badge.submitted { color: var(--amber-ink);  background: var(--amber-2); }
 .badge.merged    { color: var(--forest); background: var(--forest-2); }
 .badge.discarded { color: var(--slate);  background: #e9e2d6; }
 .badge.open      { color: var(--indigo); background: var(--indigo-2); }
@@ -508,7 +551,7 @@ body::before {
 .btn {
   font-family: var(--sans); font-size: 13.5px; font-weight: 600;
   letter-spacing: .01em;
-  padding: 10px 20px; border-radius: 8px; border: 1px solid transparent;
+  padding: 10px 20px; border-radius: var(--r-control); border: 1px solid transparent;
   cursor: pointer; color: var(--paper); background: var(--ink);
   box-shadow: var(--shadow-sm);
   transition: transform .1s, box-shadow .15s, background .15s, opacity .15s;
@@ -525,7 +568,7 @@ body::before {
   background: var(--amber-2);
   border: 1px solid var(--amber);
   border-left: 4px solid var(--amber);
-  padding: 13px 16px; border-radius: 8px;
+  padding: 13px 16px; border-radius: var(--r-card);
   color: #6e4810; font-size: 14px; line-height: 1.5;
   margin: 6px 0 18px;
 }
@@ -584,8 +627,8 @@ body::before {
 .webhook-popover {
   position: absolute; right: 0; top: calc(100% + 8px); z-index: 20;
   width: 344px; padding: 16px;
-  background: #fffdf8; border: 1px solid var(--rule); border-radius: 12px;
-  box-shadow: var(--shadow-md);
+  background: #fffdf8; border: 1px solid var(--rule); border-radius: var(--r-panel);
+  box-shadow: var(--shadow-md), var(--deboss);
   display: flex; flex-direction: column; gap: 8px;
   animation: rise .18s both;
 }
@@ -606,7 +649,11 @@ body::before {
      so the filing label stays the exact width of the leaf below it. The hairline
      rule reads as a letterhead, binding the label to the page. */
   display: flex; align-items: center; justify-content: space-between; gap: 20px;
-  padding: 16px 0 14px; border-bottom: 1px solid var(--rule);
+  padding: 16px 0 14px;
+  /* letterhead rule: solid through the centre, dissolving at both ends so the
+     label sits on the page rather than in a boxed cell */
+  border-bottom: 1px solid transparent;
+  border-image: linear-gradient(90deg, transparent, var(--rule-strong) 12%, var(--rule-strong) 88%, transparent) 1;
 }
 .doc-folio__id {
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px 12px; min-width: 0;
@@ -651,15 +698,16 @@ body::before {
 /* ---------- Reading view: rendered document ---------- */
 .viewtoggle {
   display: inline-flex; gap: 0; margin: 4px 0 22px;
-  border: 1px solid var(--rule); border-radius: 8px; overflow: hidden;
-  background: var(--paper-2);
+  border: 1px solid var(--rule); border-radius: var(--r-control); overflow: hidden;
+  background: var(--paper-2); box-shadow: var(--shadow-sm), var(--deboss);
 }
 .seg {
   font-family: var(--sans); font-size: 12.5px; font-weight: 600;
   padding: 7px 16px; border: none; cursor: pointer;
   background: transparent; color: var(--ink-soft);
 }
-.seg + .seg { border-left: 1px solid var(--rule); }
+/* separators float clear of the group's top/bottom edges (jeweller's detail) */
+.seg + .seg { border-left: 1px solid transparent; border-image: var(--rule-inset); }
 .seg:hover { color: var(--ink); }
 .seg.active { background: var(--ink); color: var(--paper); }
 
@@ -715,7 +763,7 @@ body::before {
   position: relative;
   background: #fffdf8;
   border: 1px solid var(--rule);
-  border-radius: 10px;
+  border-radius: var(--r-card);
   box-shadow: 0 1px 2px rgba(31,27,22,.06), 0 28px 60px -28px rgba(31,27,22,.34);
   padding: var(--doc-pad-top) var(--doc-pad-x) var(--doc-pad-bot);
   margin-bottom: 26px;
@@ -726,7 +774,7 @@ body::before {
 .doc-leaf::before {
   content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
   background: linear-gradient(90deg, transparent, rgba(255,255,255,.9), transparent);
-  border-radius: 10px 10px 0 0;
+  border-radius: var(--r-card) var(--r-card) 0 0;
 }
 .doc-leaf .doc {
   background: none; border: none; border-radius: 0;
@@ -823,7 +871,7 @@ body::before {
   max-width: 75%;
   background: var(--ink); color: var(--paper);
   padding: 14px 18px;
-  border-radius: 3px 12px 12px 12px;
+  border-radius: var(--r-ledger);
 }
 .dispatch-label {
   display: block; font-family: var(--sans);
@@ -867,7 +915,7 @@ body::before {
 .chatmsg.done-msg {
   margin: 8px 0 24px; display: flex; align-items: flex-start; gap: 12px;
   padding: 14px 18px;
-  background: var(--forest-2); border: 1px solid rgba(47,107,70,.3); border-radius: 8px;
+  background: var(--forest-2); border: 1px solid rgba(47,107,70,.3); border-radius: var(--r-card);
 }
 .done-stamp {
   flex-shrink: 0; font-family: var(--sans);
@@ -882,7 +930,7 @@ body::before {
   display: flex; align-items: center; gap: 10px;
   margin: 4px 0 18px; padding: 9px 14px;
   background: var(--paper-2); border: 1px solid var(--rule);
-  border-radius: 8px;
+  border-radius: var(--r-card);
 }
 .chatmsg.cancelled-msg .step-dot { background: var(--slate); }
 .chatmsg.cancelled-msg p {
@@ -892,7 +940,7 @@ body::before {
 /* Error */
 .chatmsg.error-msg {
   margin-bottom: 16px; padding: 12px 16px;
-  background: var(--vermilion-2); border: 1px solid rgba(196,61,35,.3); border-radius: 8px;
+  background: var(--vermilion-2); border: 1px solid rgba(196,61,35,.3); border-radius: var(--r-card);
 }
 .chatmsg.error-msg p { font-family: var(--sans); font-size: 14px; color: #8a1f0f; margin: 0; }
 
@@ -903,8 +951,8 @@ body::before {
   background: var(--paper);
 }
 .chatbox-card {
-  border: 1px solid var(--rule); border-radius: 10px;
-  background: var(--paper-2); box-shadow: var(--shadow-sm);
+  border: 1px solid var(--rule); border-radius: var(--r-card);
+  background: var(--paper-2); box-shadow: var(--shadow-sm), var(--deboss);
   overflow: hidden;
   transition: border-color .15s, box-shadow .15s;
 }
@@ -1223,7 +1271,7 @@ body::before {
 .sk-prop {
   display: flex; flex-direction: column; gap: 8px;
   background: var(--paper-2); border: 1px solid var(--rule);
-  border-radius: 9px; padding: 14px 13px;
+  border-radius: var(--r-card); padding: 14px 13px;
 }
 .sk-spinner {
   width: 30px; height: 30px; border-radius: 50%;
@@ -1252,9 +1300,16 @@ body::before {
   width: min(440px, 100%);
   background: var(--paper-2);
   border: 1px solid var(--rule);
-  border-radius: 10px;
-  box-shadow: var(--shadow-md);
-  padding: 36px 34px;
+  border-radius: var(--r-panel);
+  box-shadow: var(--shadow-md), var(--deboss);
+  padding: 38px 36px;
+  position: relative;
+}
+/* an engraved inset frame, set in from the card edge — the certificate detail */
+.login-card::before {
+  content: ""; position: absolute; inset: 9px;
+  border: 1px solid var(--rule-soft); border-radius: 4px;
+  pointer-events: none;
 }
 .login-head {
   font-family: var(--serif); font-weight: 600; font-size: 34px;
@@ -1284,7 +1339,7 @@ body::before {
 .prop-filters {
   display: flex; gap: 4px;
   background: var(--paper-2); border: 1px solid var(--rule);
-  border-radius: 9px; padding: 3px;
+  border-radius: 9px; padding: 3px; box-shadow: var(--deboss);
 }
 .prop-filter {
   font-family: var(--sans); font-size: 12.5px; color: var(--ink-soft);
@@ -1363,7 +1418,7 @@ body::before {
 .l-dot.merged   { background: var(--forest); }
 .l-dot.rejected { background: var(--vermilion); }
 .l-dot.opening  { background: var(--indigo); }
-.l-stamp.pending  { color: var(--amber);     border-color: var(--amber);     background: var(--amber-2); }
+.l-stamp.pending  { color: var(--amber-ink); border-color: var(--amber);     background: var(--amber-2); }
 .l-stamp.merged   { color: var(--forest);    border-color: var(--forest);    background: var(--forest-2); }
 .l-stamp.rejected { color: var(--vermilion); border-color: var(--vermilion); background: var(--vermilion-2); }
 .l-stamp.opening  { color: var(--indigo);    border-color: var(--indigo);    background: var(--indigo-2); }
@@ -1580,7 +1635,7 @@ pre.doc--new { padding-left: 20px; }
 
 /* agent context card in the review pane */
 .agentctx {
-  position: relative; border: 1px solid var(--rule); border-radius: 13px;
+  position: relative; border: 1px solid var(--rule); border-radius: var(--r-panel);
   background: linear-gradient(180deg, #fffdf8, var(--paper-2));
   padding: 14px 18px; margin-bottom: 26px; overflow: hidden; box-shadow: var(--shadow-sm);
 }
@@ -1594,6 +1649,59 @@ pre.doc--new { padding-left: 20px; }
   margin: 0; border: none; padding: 0;
   font-family: var(--serif); font-style: italic; font-weight: 400; font-size: 15px;
   color: var(--ink); line-height: 1.6;
+}
+
+/* ============================================================
+   Accessibility utilities
+   - .vh: visually-hidden label, still read by screen readers.
+   - .skip-link: keyboard "skip to content", revealed on focus.
+   - Keyboard focus rings for every interactive control that previously
+     leaned only on :hover / .active. Vermilion accent reads on both the
+     warm paper and the dark ink buttons.
+   ============================================================ */
+.vh {
+  position: absolute !important; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+
+.skip-link {
+  position: absolute; left: 12px; top: -60px; z-index: 2000;
+  font-family: var(--sans); font-size: 13px; font-weight: 600;
+  color: var(--paper); background: var(--ink);
+  padding: 10px 16px; border-radius: 8px;
+  box-shadow: var(--shadow-md);
+  transition: top .15s ease;
+}
+.skip-link:focus { top: 12px; outline: 2px solid var(--vermilion); outline-offset: 2px; }
+
+.tab:focus-visible,
+.ws:focus-visible,
+.prop:focus-visible,
+.ledger-row:focus-visible,
+.qrow:focus-visible,
+.seg:focus-visible,
+.btn:focus-visible,
+.prop-filter:focus-visible,
+.revtoc-item:focus-visible,
+.prop-back:focus-visible,
+.viewtoggle .seg:focus-visible {
+  outline: 2px solid var(--vermilion); outline-offset: 2px;
+}
+/* segmented buttons sit in an overflow:hidden track — inset the ring so it shows */
+.viewtoggle .seg:focus-visible { outline-offset: -2px; }
+
+/* On touch / coarse pointers, enforce the 44px minimum tap height on the dense
+   controls that are comfortable on desktop but too small for a finger. */
+@media (pointer: coarse) {
+  .btn,
+  .seg,
+  .prop-filter,
+  .tree-folder,
+  .tree-file,
+  .revtoc-item,
+  .tab { min-height: 44px; }
+  .tree-folder, .tree-file { padding-top: 10px; padding-bottom: 10px; }
 }
 
 /* Reading view: minimal chrome — a light path caption above the manuscript. */

@@ -113,8 +113,28 @@ export function App() {
   }
   if (authStatus === 'out') return <Login />;
 
+  const TABS: { id: 'assistant' | 'proposals' | 'files'; label: string }[] = [
+    { id: 'assistant', label: 'Trợ lý' },
+    { id: 'proposals', label: 'Đề xuất' },
+    { id: 'files', label: 'Tài liệu' },
+  ];
+  // Roving focus: ←/→ (and Home/End) move between tabs, per WAI-ARIA tabs.
+  const onTabKey = (e: React.KeyboardEvent) => {
+    const i = TABS.findIndex((t) => t.id === tab);
+    let next = i;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = (i + 1) % TABS.length;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = (i - 1 + TABS.length) % TABS.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = TABS.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(TABS[next].id);
+    document.getElementById(`tab-${TABS[next].id}`)?.focus();
+  };
+
   return (
     <div className="layout">
+      <a className="skip-link" href="#main-content">Tới nội dung chính</a>
       <aside className="sidebar">
         <h1>Commons</h1>
         <h2>Không gian làm việc</h2>
@@ -139,14 +159,17 @@ export function App() {
         {!creating && <button className="ws newbtn" onClick={() => setCreating(true)}>+ Tạo workspace</button>}
         {creating && (
           <div className="newform">
+            <label className="vh" htmlFor="new-ws-id">Mã workspace</label>
             <input
+              id="new-ws-id"
               className="newinput"
               placeholder="id (a-z, 0-9, -)"
               value={newId}
               onChange={(e) => setNewId(e.target.value)}
               autoFocus
             />
-            <select className="newinput" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)}>
+            <label className="vh" htmlFor="new-ws-template">Mẫu khởi tạo</label>
+            <select id="new-ws-template" className="newinput" value={newTemplate} onChange={(e) => setNewTemplate(e.target.value)}>
               <option value="content-calendar">Lịch nội dung</option>
               <option value="blank">Trống</option>
             </select>
@@ -168,19 +191,30 @@ export function App() {
           )}
         </div>
       </aside>
-      <main className="main">
+      <main className="main" id="main-content">
         {ws ? (
           <>
-            <div className="tabs" role="tablist" aria-label="Khu vực workspace">
-              <button role="tab" aria-selected={tab === 'assistant'} className={tab === 'assistant' ? 'tab active' : 'tab'} onClick={() => setTab('assistant')}>Trợ lý</button>
-              <button role="tab" aria-selected={tab === 'proposals'} className={tab === 'proposals' ? 'tab active' : 'tab'} onClick={() => setTab('proposals')}>Đề xuất</button>
-              <button role="tab" aria-selected={tab === 'files'} className={tab === 'files' ? 'tab active' : 'tab'} onClick={() => setTab('files')}>Tài liệu</button>
+            <div className="tabs" role="tablist" aria-label="Khu vực workspace" onKeyDown={onTabKey}>
+              {TABS.map((t) => (
+                <button
+                  key={t.id}
+                  id={`tab-${t.id}`}
+                  role="tab"
+                  aria-selected={tab === t.id}
+                  aria-controls={`panel-${t.id}`}
+                  tabIndex={tab === t.id ? 0 : -1}
+                  className={tab === t.id ? 'tab active' : 'tab'}
+                  onClick={() => setTab(t.id)}
+                >{t.label}</button>
+              ))}
             </div>
-            {tab === 'assistant'
-              ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
-              : tab === 'proposals'
-                ? <ProposalList ws={ws} proposals={proposals} stats={proposalStats} loading={proposalsLoading} onChanged={() => loadProposals(ws)} />
-                : <FileBrowser ws={ws} />}
+            <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="tabpanel">
+              {tab === 'assistant'
+                ? <AgentChat ws={ws} onDone={() => { setTab('proposals'); loadProposals(ws); }} />
+                : tab === 'proposals'
+                  ? <ProposalList ws={ws} proposals={proposals} stats={proposalStats} loading={proposalsLoading} onChanged={() => loadProposals(ws)} />
+                  : <FileBrowser ws={ws} />}
+            </div>
           </>
         ) : (
           <div className="frontpage">

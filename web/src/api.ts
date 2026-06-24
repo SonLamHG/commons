@@ -24,10 +24,6 @@ export const api = {
     > => fetch('/api/auth/session').then(j),
     me: (): Promise<{ userId: string; tenantId: string; email: string }> =>
       fetch('/api/auth/me').then(j),
-    request: (email: string): Promise<{ ok: boolean }> =>
-      fetch('/api/auth/request', {
-        method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email }),
-      }).then(j),
     logout: (): Promise<{ ok: boolean }> =>
       fetch('/api/auth/logout', { method: 'POST' }).then(j),
   },

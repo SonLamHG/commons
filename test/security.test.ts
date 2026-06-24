@@ -87,4 +87,16 @@ describe('rate limit hook', () => {
     expect(blocked.headers['retry-after']).toBeDefined();
     await app.close();
   });
+
+  it('keeps the session probe out of the strict auth bucket', async () => {
+    const app = Fastify();
+    // auth bucket of 1 would trip on the 2nd hit if session were counted as auth.
+    registerRateLimit(app, { global: { max: 100, windowMs: 60000 }, auth: { max: 1, windowMs: 60000 } });
+    app.get('/api/auth/session', async () => ({ authenticated: false }));
+    const hit = () => app.inject({ method: 'GET', url: '/api/auth/session', headers: { 'x-forwarded-for': '6.6.6.6' } });
+    expect((await hit()).statusCode).toBe(200);
+    expect((await hit()).statusCode).toBe(200); // not 429 — falls in the global bucket
+    expect((await hit()).statusCode).toBe(200);
+    await app.close();
+  });
 });

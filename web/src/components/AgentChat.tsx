@@ -156,8 +156,9 @@ export function AgentChat({ ws, onDone }: { ws: string; onDone: () => void }) {
 
       <div className="chatbox">
         <div className="chatbox-card">
-          <label className="chatbox-eyebrow">Yêu cầu mới</label>
+          <label className="chatbox-eyebrow" htmlFor="chat-prompt">Yêu cầu mới</label>
           <textarea
+            id="chat-prompt"
             value={prompt}
             disabled={busy}
             placeholder="Bạn muốn trợ lý làm gì?"

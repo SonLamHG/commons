@@ -10,6 +10,7 @@
     "mcp": "tsx src/mcp/stdio.ts",
     "seed": "tsx examples/seed.ts",
     "agent-sim": "tsx examples/agent-sim.ts",
+    "bench:agent": "tsx src/bench/agent-bench.ts",
     "api": "node --watch --import tsx src/api/main.ts",
     "start": "node --import tsx src/api/main.ts",
     "web": "vite",

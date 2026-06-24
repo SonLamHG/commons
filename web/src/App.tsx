@@ -184,10 +184,10 @@ export function App() {
           <span className="colophon-rule" />
           <p>Agent đề xuất · con người duyệt.<br />Nhánh <b>main</b> là bản đã được phê duyệt.</p>
           {me && (
-            <p className="account">
-              {me.email}
-              <button className="ws-del" title="Đăng xuất" aria-label="Đăng xuất" onClick={logout}>⎋</button>
-            </p>
+            <div className="account">
+              <span className="account-email" title={me.email}>{me.email}</span>
+              <button className="logout-btn" onClick={logout}>Đăng xuất</button>
+            </div>
           )}
         </div>
       </aside>

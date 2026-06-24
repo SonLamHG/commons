@@ -1,6 +1,7 @@
 export type AgentEvent =
   | { type: 'text'; text: string }
   | { type: 'tool'; name: string; input?: unknown }
+  | { type: 'usage'; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheCreationTokens: number }
   | { type: 'done'; result: string; costUsd: number; numTurns: number }
   | { type: 'error'; message: string };
 

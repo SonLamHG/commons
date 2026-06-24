@@ -4,9 +4,11 @@ import type { Options } from '@anthropic-ai/claude-agent-sdk';
 
 const SERVER = 'commons';
 
+// Note: list_workspaces is intentionally NOT granted to the agent. It always works on a
+// single workspace (supplied via framePrompt), and overview already lists every workspace
+// with richer counts — so list_workspaces is pure redundancy and one more way to wander.
 export const COMMONS_TOOLS = [
   'overview',
-  'list_workspaces',
   'read_state',
   'read_file',
   'list_proposals',
@@ -30,10 +32,15 @@ const DENY_BUILTINS = [
 export const DEFAULT_AGENT_MODEL = 'claude-haiku-4-5-20251001';
 const MODEL = process.env.COMMONS_AGENT_MODEL ?? DEFAULT_AGENT_MODEL;
 
-function systemPrompt(workspace: string): string {
+/** A static system prompt — deliberately free of any per-request value (workspace,
+ *  timestamps) so it forms a stable cache prefix with the tool schemas. The workspace
+ *  id is supplied per call via framePrompt() in the first user turn. */
+function systemPrompt(): string {
   return [
-    `You are the drafting assistant for the knowledge-work workspace "${workspace}".`,
+    `You are the drafting assistant for a knowledge-work workspace.`,
     `Your ONLY job is to turn the user's request into a single reviewable proposal that a human will approve or reject. You do not publish and you cannot merge.`,
+    ``,
+    `The id of the workspace you operate on is given at the top of the first user message. Pass that exact id as the "workspace" argument to every tool.`,
     ``,
     `Every tool you have is named with the prefix "mcp__commons__" — always invoke tools by that exact full name (for example mcp__commons__overview), never a bare name like "overview" or an invented one. Your very first action must be a call to mcp__commons__overview.`,
     ``,
@@ -47,6 +54,12 @@ function systemPrompt(workspace: string): string {
   ].join('\n');
 }
 
+/** Frame the user's request with the target workspace id. Kept out of the system
+ *  prompt so the cached prefix stays identical across workspaces and sessions. */
+export function framePrompt(workspace: string, userPrompt: string): string {
+  return `Workspace: ${workspace}\n\n${userPrompt}`;
+}
+
 /** Absolute path to src/mcp/stdio.ts, resolved from this module's location. */
 export function commonsStdioPath(): string {
   // On Windows, import.meta.url is file:///C:/..., fileURLToPath handles the conversion
@@ -55,12 +68,12 @@ export function commonsStdioPath(): string {
   return resolve(thisFile, '../../mcp/stdio.ts');
 }
 
-export function buildAgentOptions(root: string, workspace: string): Options {
+export function buildAgentOptions(root: string): Options {
   const absRoot = root;
   const isWin = process.platform === 'win32';
   return {
     model: MODEL,
-    systemPrompt: systemPrompt(workspace),
+    systemPrompt: systemPrompt(),
     maxTurns: 24,
     permissionMode: 'default',
     settingSources: [],

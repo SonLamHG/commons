@@ -3,13 +3,19 @@
  * (real Anthropic API) against an existing workspace under COMMONS_ROOT (./data),
  * scores each run, writes per-turn NDJSON traces, and cleans up created proposals.
  *
- * Usage:
- *   npm run bench:agent -- --workspace content-calendar --runs 10
- *   npm run bench:agent -- --workspace content-calendar --runs 3 --keep
- *   npm run bench:agent -- --workspace content-calendar --prompt "..."
+ * Usage (--target, NOT --workspace/--ws: npm prefix-matches those to its own
+ * reserved --workspace flag and swallows them before the script sees them):
+ *   npm run bench:agent -- --target content-calendar --runs 10
+ *   npm run bench:agent -- --target content-calendar --runs 3 --keep
+ *   npm run bench:agent -- --target content-calendar --prompt "..."
+ * (Direct tsx also accepts --ws / --workspace:
+ *   npx tsx src/bench/agent-bench.ts --workspace content-calendar --runs 10)
  */
 import { join } from 'node:path';
+import { loadEnv } from '../util/env.js';
 import { createEngine } from '../engine/index.js';
+
+loadEnv(); // make ANTHROPIC_API_KEY / COMMONS_ROOT from .env available (entry-point convention)
 import { createClaudeRunner } from '../agent/runner.js';
 import { scoreRun, type RunScore } from './score.js';
 import type { AgentEvent } from '../agent/types.js';
@@ -23,8 +29,10 @@ function arg(name: string, fallback?: string): string | undefined {
 const hasFlag = (name: string) => process.argv.includes(`--${name}`);
 
 async function main() {
-  const workspace = arg('workspace');
-  if (!workspace) { console.error('error: --workspace <id> is required'); process.exit(1); }
+  // --target is the documented flag (npm prefix-matches --ws/--workspace to its own
+  // reserved flag); accept --ws/--workspace too for direct `tsx` invocation.
+  const workspace = arg('target') ?? arg('ws') ?? arg('workspace');
+  if (!workspace) { console.error('error: --target <workspace-id> is required'); process.exit(1); }
   const runs = Number(arg('runs', '10'));
   const prompt = arg('prompt', DEFAULT_PROMPT)!;
   const keep = hasFlag('keep');

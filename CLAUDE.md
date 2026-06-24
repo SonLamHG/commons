@@ -34,7 +34,7 @@ npm run mcp:http         # stateless streamable-HTTP MCP server (8765)
 npm run seed             # create the 'content-calendar' demo workspace under ./data
 npm run demo             # run the full lifecycle on real files + git
 npm run agent-sim        # simulate an agent driving the engine
-npm run bench:agent -- --workspace content-calendar --runs 10   # real-run agent benchmark (spends API $); writes NDJSON token traces to data/traces/bench
+npm run bench:agent -- --target content-calendar --runs 10   # real-run agent benchmark (spends API $); writes NDJSON token traces to data/traces/bench
 ```
 
 There is no separate build/lint step for `src/` — everything runs through `tsx` (ESM,
